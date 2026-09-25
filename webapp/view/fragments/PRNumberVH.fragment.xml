@@ -1,0 +1,8 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+  <SelectDialog
+    title="Select PR Number"
+    items="{pr>/PRNumbers}"
+    confirm="onPRNumberVHConfirm">
+    <StandardListItem title="{pr>PrNumber}"/>
+  </SelectDialog>
+</core:FragmentDefinition>

@@ -1,0 +1,17 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+
+    <ActionSheet
+        id="actionSheet"
+        placement="Bottom">
+
+        <buttons>
+            <Button text="Edit NFA" press=".onEditNFA" enabled="true"/>
+            <Button text="Create Purchase Order" press=".onCreatePO" enabled="false"/>
+            <Button text="Create Contract" press=".onCreateContractWK" enabled="false"/>
+            <Button text="Create Scheduling Agreement" press=".onCreateSchedulingAgreement" enabled="false"/>
+        </buttons>
+
+    </ActionSheet>
+</core:FragmentDefinition>

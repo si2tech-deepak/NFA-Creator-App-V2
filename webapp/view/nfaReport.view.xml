@@ -1,0 +1,125 @@
+<mvc:View
+    controllerName="com.df.nfa.creator_v2.controller.nfaReport"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:f="sap.f"
+    xmlns:layout="sap.ui.layout"
+    xmlns:core="sap.ui.core">
+
+    <f:DynamicPage fitContent="true">
+        <f:title>
+            <f:DynamicPageTitle>
+                <f:heading>
+                    <Title text="NFA Report"/>
+                </f:heading>
+                <f:actions>
+                    <Button text="Back" icon="sap-icon://nav-back" press="onBack"/>
+                </f:actions>
+            </f:DynamicPageTitle>
+        </f:title>
+
+        <f:header>
+            <f:DynamicPageHeader pinnable="true">
+                <f:content>
+                    <layout:Grid defaultSpan="XL3 L3 M6 S12" hSpacing="1" vSpacing="0">
+
+                        <VBox>
+                            <Label text="Plant"/>
+                            <Input id="filterPlant" placeholder="Enter Plant" showClearIcon="true" width="100%"/>
+                        </VBox>
+
+                        <VBox>
+                            <Label text="Date From"/>
+                            <DatePicker id="filterDateFrom" displayFormat="dd MMM yyyy" valueFormat="yyyy-MM-dd" width="100%"/>
+                        </VBox>
+
+                        <VBox>
+                            <Label text="Date To"/>
+                            <DatePicker id="filterDateTo" displayFormat="dd MMM yyyy" valueFormat="yyyy-MM-dd" width="100%"/>
+                        </VBox>
+
+                        <VBox>
+                            <Label text="File Note Number"/>
+                            <Input id="filterNfaNo" placeholder="Enter File Note No." showClearIcon="true" width="100%"/>
+                        </VBox>
+
+                        <VBox>
+                            <Label text="Status"/>
+                            <ComboBox id="filterStatus" showClearIcon="true" width="100%">
+                                <core:Item key="" text="All"/>
+                                <core:Item key="Draft" text="Draft"/>
+                                <core:Item key="Send for Approval" text="Send for Approval"/>
+                                <core:Item key="Approval Pending" text="Approval Pending"/>
+                                <core:Item key="Approved" text="Approved"/>
+                                <core:Item key="Rejected" text="Rejected"/>
+                            </ComboBox>
+                        </VBox>
+
+                        <VBox>
+                            <Label text="Purchase Group"/>
+                            <Input id="filterPurchaseGroup" placeholder="Enter Purchase Group" showClearIcon="true" width="100%"/>
+                        </VBox>
+
+                        <VBox class="sapUiSmallMarginTop">
+                            <HBox>
+                                <Button text="Search" type="Emphasized" icon="sap-icon://search" press="onSearch" class="sapUiSmallMarginEnd"/>
+                                <Button text="Reset" type="Default" icon="sap-icon://clear-filter" press="onReset"/>
+                            </HBox>
+                        </VBox>
+
+                    </layout:Grid>
+                </f:content>
+            </f:DynamicPageHeader>
+        </f:header>
+
+        <f:content>
+            <Table
+                id="reportTable"
+                items="{reportModel>/items}"
+                sticky="ColumnHeaders,HeaderToolbar"
+                growing="true"
+                growingThreshold="50"
+                noDataText="No data found. Please apply filters and click Search.">
+                <headerToolbar>
+                    <OverflowToolbar style="Clear">
+                        <Text text="{= ${reportModel>/items}.length + ' Record(s) found'}" class="sapUiSmallMarginBegin"/>
+                        <ToolbarSpacer/>
+                        <Button
+                            text="Export to Excel"
+                            icon="sap-icon://excel-attachment"
+                            type="Default"
+                            press="onExport"
+                            enabled="{= ${reportModel>/items}.length > 0}"/>
+                    </OverflowToolbar>
+                </headerToolbar>
+                <columns>
+                    <Column><Text text="File Note No."/></Column>
+                    <Column><Text text="NFA Title"/></Column>
+                    <Column><Text text="Plant"/></Column>
+                    <Column><Text text="Purchase Org"/></Column>
+                    <Column><Text text="Purchase Group"/></Column>
+                    <Column><Text text="Company Code"/></Column>
+                    <Column><Text text="Currency"/></Column>
+                    <Column><Text text="Status"/></Column>
+                    <Column><Text text="Created On"/></Column>
+                </columns>
+                <items>
+                    <ColumnListItem>
+                        <cells>
+                            <Text text="{reportModel>NfaRefNo}"/>
+                            <Text text="{reportModel>NfaTitle}"/>
+                            <Text text="{reportModel>PlantDesc}"/>
+                            <Text text="{reportModel>PurchaseOrgDesc}"/>
+                            <Text text="{reportModel>PurchaseGroupDesc}"/>
+                            <Text text="{reportModel>CompanyDescription}"/>
+                            <Text text="{reportModel>CurrencyDesc}"/>
+                            <ObjectStatus text="{reportModel>Status}" state="{reportModel>StatusState}"/>
+                            <Text text="{reportModel>BiDateFormatted}"/>
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+        </f:content>
+    </f:DynamicPage>
+
+</mvc:View>

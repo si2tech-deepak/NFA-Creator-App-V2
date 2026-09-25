@@ -1,0 +1,172 @@
+{
+    "_version": "1.76.0",
+    "sap.app": {
+        "id": "com.df.nfa.creator_v2",
+        "type": "application",
+        "i18n": "i18n/i18n.properties",
+        "applicationVersion": {
+            "version": "0.0.1"
+        },
+        "title": "NFA Creator",
+        "description": "NFA Creator Application",
+        "crossNavigation": {
+            "inbounds": {
+                "app-preview": {
+                    "semanticObject": "app",
+                    "action": "preview",
+                    "title": "NFA Creator",
+                    "signature": {
+                        "parameters": {},
+                        "additionalParameters": "allowed"
+                    }
+                }
+            }
+        },
+        "dataSources": {
+            "mainService": {
+                "uri": "/sap/opu/odata/sap/ZNFA_SRV/",
+                "type": "OData",
+                "settings": {
+                    "annotations": [],
+                    "localUri": "localService/mainService/metadata.xml",
+                    "odataVersion": "2.0"
+                }
+            }
+        },
+        "sourceTemplate": {
+            "id": "@sap/ux-app-migrator:freestyle",
+            "version": "1.29.0",
+            "toolsId": "90a936b5-a113-4960-acf0-d6ff7ebad38e"
+        }
+    },
+    "sap.ui": {
+        "technology": "UI5",
+        "deviceTypes": {
+            "desktop": true,
+            "tablet": true,
+            "phone": true
+        }
+    },
+    "sap.ui5": {
+        "flexEnabled": false,
+        "dependencies": {
+            "minUI5Version": "1.143.2",
+            "libs": {
+                "sap.m": {},
+                "sap.ui.core": {},
+                "sap.ui.layout": {},
+                "sap.f": {},
+                "sap.uxap": {},
+                "sap.ui.table": {},
+                "sap.ui.unified": {},
+                "sap.ui.export": {},
+                "sap.ui.comp": {}
+            }
+        },
+        "contentDensities": {
+            "compact": true,
+            "cozy": true
+        },
+        "models": {
+            "i18n": {
+                "type": "sap.ui.model.resource.ResourceModel",
+                "settings": {
+                    "bundleName": "com.df.nfa.creator_v2.i18n.i18n"
+                }
+            },
+            "": {
+                "dataSource": "mainService",
+                "preload": true,
+                "settings": {}
+            }
+        },
+        "resources": {
+            "css": [
+                {
+                    "uri": "css/style.css"
+                }
+            ]
+        },
+        "routing": {
+            "config": {
+                "routerClass": "sap.m.routing.Router",
+                "controlAggregation": "pages",
+                "controlId": "app",
+                "transition": "slide",
+                "type": "View",
+                "viewType": "XML",
+                "path": "com.df.nfa.creator_v2.view",
+                "async": true,
+                "viewPath": "com.df.nfa.creator_v2.view"
+            },
+            "routes": [
+                {
+                    "name": "RoutenfaCreator",
+                    "pattern": "",
+                    "target": [
+                        "TargetnfaCreator"
+                    ]
+                },
+                {
+                    "name": "RoutenfaCreate",
+                    "pattern": "nfaCreate/{mode}/:docNo::?query:",
+                    "target": "nfaCreate"
+                },
+                {
+                    "name": "RoutenfaDetails",
+                    "pattern": "nfaDetails/{eventId}",
+                    "target": "nfaDetails"
+                },
+                {
+                    "pattern": "qcs/{mode}/:nfaRefNo::?query:",
+                    "name": "RouteQCS",
+                    "target": "QCS"
+                },
+                {
+                    "pattern": "postingTest",
+                    "name": "RoutePostingTest",
+                    "target": "PostingTest"
+                },
+                {
+                    "pattern": "nfaReport",
+                    "name": "RouteNfaReport",
+                    "target": "NfaReport"
+                }
+            ],
+            "targets": {
+                "TargetnfaCreator": {
+                    "id": "nfaCreator",
+                    "name": "nfaCreator"
+                },
+                "nfaCreate": {
+                    "id": "nfaCreate",
+                    "name": "nfaCreate"
+                },
+                "nfaDetails": {
+                    "id": "nfaDetails",
+                    "name": "nfaDetails"
+                },
+                "QCS": {
+                    "id": "QCS",
+                    "name": "QCS",
+                    "viewType": "XML"
+                },
+                "PostingTest": {
+                    "viewName": "PostingTest",
+                    "viewType": "XML"
+                },
+                "NfaReport": {
+                    "id": "nfaReport",
+                    "name": "nfaReport",
+                    "viewType": "XML"
+                }
+            }
+        },
+        "rootView": {
+            "viewName": "com.df.nfa.creator_v2.view.App",
+            "type": "XML",
+            "id": "App",
+            "async": true
+        }
+    }
+}

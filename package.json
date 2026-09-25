@@ -1,0 +1,18 @@
+{
+  "name": "com.df.nfa.creator_v2",
+  "version": "0.0.1",
+  "private": true,
+  "description": "NFA Creator V2 (Deepak) - local development project",
+  "scripts": {
+    "start": "fiori run --open \"test/flpSandbox.html?sap-ui-xx-viewCache=false#app-preview\"",
+    "start-noflp": "fiori run --open \"index.html?sap-ui-xx-viewCache=false\"",
+    "start-mock": "fiori run --open \"test/flpSandboxMockServer.html?sap-ui-xx-viewCache=false#app-preview\"",
+    "build": "ui5 build --config=ui5.yaml --clean-dest --dest dist",
+    "deploy-test": "fiori deploy --config ui5-deploy.yaml --testMode",
+    "deploy": "fiori deploy --config ui5-deploy.yaml"
+  },
+  "devDependencies": {
+    "@sap/ux-ui5-tooling": "^1.32.0",
+    "@ui5/cli": "^4.0.0"
+  }
+}

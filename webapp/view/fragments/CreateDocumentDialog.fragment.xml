@@ -1,0 +1,47 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:l="sap.ui.layout">
+
+    <Dialog id="createDocumentDialog" title="Create Document - {cdModel>/selectedNfaIds}" contentWidth="480px" draggable="true"
+        busy="{cdModel>/busy}" busyIndicatorDelay="0">
+        <VBox class="sapUiMediumMargin">
+
+            <!-- Step 1: Document Type Selection -->
+            <Title text="Select Document Type" level="H5" class="sapUiTinyMarginBottom"/>
+            <RadioButtonGroup id="docTypeRadioGroup" columns="1" select="onDocTypeRadioChange">
+                <buttons>
+                    <RadioButton id="rbContract" text="Contract" key="CONTRACT"/>
+                    <RadioButton id="rbSA"       text="Scheduling Agreement" key="SA"/>
+                    <RadioButton id="rbPO"       text="Purchase Order" key="PO"/>
+                </buttons>
+            </RadioButtonGroup>
+
+            <!-- Step 2: Doc Type dropdown (shown after radio selection) -->
+            <VBox visible="{cdModel>/docTypeVisible}" class="sapUiSmallMarginTop">
+                <Label text="{cdModel>/docTypeLabel}" required="true"/>
+                <Select id="docTypeSelect" width="100%" items="{cdModel>/docTypes}"
+                    selectedKey="{cdModel>/selectedDocType}">
+                    <core:Item key="{cdModel>KeyDataType}" text="{cdModel>Description}"/>
+                </Select>
+            </VBox>
+
+            <!-- Selected NFAs info -->
+            <!-- <VBox class="sapUiSmallMarginTop">
+                <Label text="Selected NFA(s)"/>
+                <Text text="{cdModel>/selectedNfaIds}"/>
+            </VBox> -->
+
+        </VBox>
+
+        <beginButton>
+            <Button text="Create" type="Emphasized" icon="sap-icon://create"
+                press="onConfirmCreateDocument"
+                enabled="{= !!${cdModel>/selectedDocType} &amp;&amp; !${cdModel>/busy} }"/>
+        </beginButton>
+        <endButton>
+            <Button text="Cancel" press="onCloseCreateDocument"/>
+        </endButton>
+    </Dialog>
+
+</core:FragmentDefinition>

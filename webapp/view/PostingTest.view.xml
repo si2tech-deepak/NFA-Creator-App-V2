@@ -1,0 +1,1067 @@
+<mvc:View
+  controllerName="com.df.nfa.creator_v2.controller.PostingTest"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:l="sap.ui.layout"
+  xmlns:f="sap.ui.layout.form">
+  <Page title="Sequential Posting Test" enableScrolling="true">
+    <headerContent>
+      <Button text="Back" icon="sap-icon://nav-back" press="onBack"/>
+    </headerContent>
+    <content>
+      <VBox class="sapUiMediumMargin">
+
+        <!-- ===== BUYER ATTACHMENT SECTION ===== -->
+        <Title text="Buyer Attachments" level="H3"/>
+
+        <!-- Add row form -->
+        <HBox alignItems="Center" wrap="Wrap" class="sapUiSmallMarginTop">
+          <Input id="buyerDocNameInput" placeholder="BuyerDocName" width="180px"
+            value="{testModel>/buyerAttach/BuyerDocName}"/>
+          <unified:FileUploader
+            xmlns:unified="sap.ui.unified"
+            id="buyerAttachFileUploader"
+            buttonOnly="false"
+            uploadOnChange="false"
+            fileType="pdf,png,jpg,jpeg,xlsx,docx"
+            change="onBuyerAttachFileChange"
+            class="sapUiSmallMarginBegin"
+            placeholder="Choose file..."/>
+          <Input id="buyerDocFileNameInput" placeholder="BuyerFileName (auto-filled)" width="200px"
+            editable="false" class="sapUiSmallMarginBegin"
+            value="{testModel>/buyerAttach/BuyerFileName}"/>
+          <Input id="buyerSplInput" placeholder="SharePoint Link (BuyerSpl)" width="250px"
+            class="sapUiSmallMarginBegin"
+            value="{testModel>/buyerAttach/BuyerSpl}"/>
+          <Button text="Add" icon="sap-icon://add" press="onAddBuyerAttachRow"
+            class="sapUiSmallMarginBegin"/>
+        </HBox>
+
+        <!-- Staged buyer attachments table -->
+        <Panel headerText="Staged Buyer Attachments" expandable="false"
+          visible="{= ${testModel>/stagedBuyerAttachments}.length > 0}" class="sapUiSmallMarginTop">
+          <Table items="{testModel>/stagedBuyerAttachments}" alternateRowColors="true">
+            <columns>
+              <Column width="4rem"><Text text="Sno"/></Column>
+              <Column><Text text="BuyerDocName"/></Column>
+              <Column><Text text="BuyerFileName"/></Column>
+              <Column><Text text="SharePoint Link"/></Column>
+              <Column width="4rem"><Text text="Remove"/></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{testModel>Sno}"/>
+                  <Text text="{testModel>BuyerDocName}"/>
+                  <Text text="{testModel>BuyerFileName}"/>
+                  <Link text="{testModel>BuyerSpl}" href="{testModel>BuyerSpl}" target="_blank"
+                    visible="{= !!${testModel>BuyerSpl}}"/>
+                  <Button icon="sap-icon://delete" type="Transparent" press="onRemoveBuyerAttachRow"/>
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </Panel>
+
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Input placeholder="NFA Ref No for POST" width="200px"
+            value="{testModel>/buyerAttachNfaRefNo}"/>
+          <Button text="Post Buyer Attachments" type="Emphasized" icon="sap-icon://attachment"
+            press="onPostBuyerAttachments" class="sapUiSmallMarginBegin"
+            enabled="{testModel>/hasStagedBuyer}"/>
+        </HBox>
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Text text="Buyer Attach Status: " class="sapUiSmallMarginEnd"/>
+          <ObjectStatus text="{testModel>/buyerAttachStatus}" state="{testModel>/buyerAttachStatusState}"/>
+        </HBox>
+
+        <!-- Fetch buyer attachments grid table -->
+        <Title text="Fetched Buyer Attachments" level="H4" class="sapUiSmallMarginTop"/>
+        <HBox alignItems="Center" class="sapUiSmallMarginTop">
+          <Input placeholder="NFA Ref No to fetch" width="200px"
+            value="{testModel>/buyerAttachFetchNfaRefNo}"/>
+          <Button text="Fetch" type="Default" icon="sap-icon://search"
+            press="onFetchBuyerAttachments" class="sapUiSmallMarginBegin"/>
+          <ObjectStatus text="{testModel>/buyerAttachFetchStatus}" state="{testModel>/buyerAttachFetchStatusState}"
+            class="sapUiSmallMarginBegin"/>
+        </HBox>
+        <t:Table
+          xmlns:t="sap.ui.table"
+          id="buyerAttachTable"
+          rows="{testModel>/fetchedBuyerAttachments}"
+          visibleRowCount="5"
+          selectionMode="None"
+          alternateRowColors="true"
+          class="sapUiSmallMarginTop"
+          visible="{= ${testModel>/fetchedBuyerAttachments}.length > 0}">
+          <t:columns>
+            <t:Column width="5rem"><Label text="Mandt"/><t:template><Text text="{testModel>Mandt}"/></t:template></t:Column>
+            <t:Column width="10rem"><Label text="NFA Ref No"/><t:template><Text text="{testModel>NfaRefNo}"/></t:template></t:Column>
+            <t:Column width="12rem"><Label text="BuyerFileName"/><t:template><Text text="{testModel>BuyerFileName}"/></t:template></t:Column>
+            <t:Column width="12rem"><Label text="BuyerDocName"/><t:template><Text text="{testModel>BuyerDocName}"/></t:template></t:Column>
+            <t:Column width="10rem"><Label text="BuyerDocMime"/><t:template><Text text="{testModel>BuyerDocMime}"/></t:template></t:Column>
+            <t:Column width="8rem"><Label text="BuyerFileData"/><t:template><Text text="{testModel>BuyerFileData}" maxLines="1"/></t:template></t:Column>
+            <t:Column width="20rem"><Label text="BuyerSpl (SharePoint)"/><t:template><Link text="{testModel>BuyerSpl}" href="{testModel>BuyerSpl}" target="_blank" visible="{= !!${testModel>BuyerSpl}}"/></t:template></t:Column>
+          </t:columns>
+        </t:Table>
+
+        <!-- ===== BUYER ATTACHMENT TEST SECTION (LEGACY) ===== -->
+        <Title text="Buyer Attachment Tests" level="H3" class="sapUiMediumMarginTop"/>
+
+        <!-- GET: et_attachment_buyerSet -->
+        <Text text="a. GET: et_attachment_buyerSet" class="sapUiTinyMarginBottom"/>
+        <Button text="GET Buyer Attachments" type="Default" icon="sap-icon://download"
+          press="onGetBuyerAttachments" class="sapUiSmallMarginTop"/>
+
+        <!-- GET: et_attachment_supplierSet -->
+        <Text text="b. GET: et_attachment_supplierSet" class="sapUiSmallMarginTop sapUiTinyMarginBottom"/>
+        <HBox alignItems="Center" class="sapUiSmallMarginTop" wrap="Wrap">
+          <Input id="supplierAttachNfaRefInput" placeholder="NFA Ref No (optional)" width="200px"
+            value="{testModel>/supplierAttachFetchNfaRefNo}"/>
+          <Input id="supplierAttachVendorNoInput" placeholder="Vendor No (optional)" width="180px"
+            class="sapUiSmallMarginBegin"
+            value="{testModel>/supplierAttachFetchVendorNo}"/>
+          <Button text="GET Supplier Attachments" type="Default" icon="sap-icon://download"
+            press="onGetSupplierAttachments" class="sapUiSmallMarginBegin"/>
+        </HBox>
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Text text="Supplier Attach Status: " class="sapUiSmallMarginEnd"/>
+          <ObjectStatus text="{testModel>/supplierAttachStatus}" state="{testModel>/supplierAttachStatusState}"/>
+        </HBox>
+
+        <!-- POST: et_attachHeadSet (buyer doc) -->
+        <Text text="b. POST: et_attachHeadSet (Buyer Doc)" class="sapUiSmallMarginTop sapUiTinyMarginBottom"/>
+        <HBox alignItems="Center" wrap="Wrap" class="sapUiSmallMarginTop">
+          <Input id="buyerNfaRefInput" placeholder="NFA Ref No" width="200px"
+            value="{testModel>/buyerNfaRefNo}"/>
+          <unified:FileUploader
+            xmlns:unified="sap.ui.unified"
+            id="buyerFileUploader"
+            buttonOnly="false"
+            uploadOnChange="false"
+            fileType="pdf,png,jpg,jpeg,xlsx,docx"
+            change="onBuyerFileChange"
+            class="sapUiSmallMarginBegin"
+            placeholder="Choose buyer file..."/>
+          <Button text="POST Buyer Attachment" type="Emphasized" icon="sap-icon://attachment"
+            press="onPostBuyerAttachment" class="sapUiSmallMarginBegin"/>
+          <Button text="Raw XHR Test" type="Default" icon="sap-icon://lab"
+            press="onRawPostTest" class="sapUiSmallMarginBegin"
+            tooltip="Bypasses OData model - shows exact HTTP status and raw response in Debug panel"/>
+        </HBox>
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Text text="Buyer Status: " class="sapUiSmallMarginEnd"/>
+          <ObjectStatus text="{testModel>/buyerStatus}" state="{testModel>/buyerStatusState}"/>
+        </HBox>
+
+        <!-- ARIBA DOC NO POST SECTION -->
+        <Title text="Ariba Scenario: Post &amp; Fetch by Ariba Doc No" level="H3"/>
+        <Text text="POST to et_nfa_detailsSet with AribaDocNo, then fetch back filtered by AribaDocNo + Status=NEW" class="sapUiTinyMarginBottom"/>
+
+        <!-- Step 1: POST -->
+        <Text text="Step 1: POST AribaDocNo to et_nfa_detailsSet" class="sapUiSmallMarginTop sapUiTinyMarginBottom"/>
+        <HBox alignItems="Center" class="sapUiSmallMarginTop" wrap="Wrap">
+          <Input id="aribaDocNoInput" placeholder="e.g. ARIBA-0001"
+            value="{testModel>/aribaDocNo}" width="250px"/>
+          <Button text="Post &amp; Fetch" type="Emphasized" icon="sap-icon://paper-plane"
+            press="onPostAribaDocNo" class="sapUiSmallMarginBegin"/>
+        </HBox>
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Text text="Post Status: " class="sapUiSmallMarginEnd"/>
+          <ObjectStatus text="{testModel>/aribaPostStatus}" state="{testModel>/aribaPostStatusState}"/>
+        </HBox>
+
+        <!-- Step 2: Auto-fetch result after POST (AribaDocNo + Status=NEW) -->
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Text text="Fetch Status (AribaDocNo + Status=NEW): " class="sapUiSmallMarginEnd"/>
+          <ObjectStatus text="{testModel>/aribaFetchStatus}" state="{testModel>/aribaFetchStatusState}"/>
+        </HBox>
+
+        <!-- Results table -->
+        <Panel headerText="Fetched Records (AribaDocNo + Status=NEW)" expandable="true" expanded="true"
+          visible="{= ${testModel>/aribaResults}.length > 0}" class="sapUiSmallMarginTop">
+          <Table items="{testModel>/aribaResults}" alternateRowColors="true">
+            <columns>
+              <Column><Text text="NFA Ref No"/></Column>
+              <Column><Text text="Ariba Doc No"/></Column>
+              <Column><Text text="NFA Title"/></Column>
+              <Column><Text text="Company Code"/></Column>
+              <Column><Text text="Status"/></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{testModel>NfaRefNo}"/>
+                  <Text text="{testModel>AribaDocNo}"/>
+                  <Text text="{testModel>NfaTitle}"/>
+                  <Text text="{testModel>CompanyCode}"/>
+                  <ObjectStatus text="{testModel>Status}" state="Information"/>
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+          <Button text="Create NFA Reference" type="Emphasized" icon="sap-icon://create"
+            press="onCreateNfaFromAriba" class="sapUiSmallMargin"/>
+          <HBox alignItems="Center" class="sapUiSmallMarginBegin sapUiSmallMarginBottom">
+            <Text text="Create Status: " class="sapUiSmallMarginEnd"/>
+            <ObjectStatus text="{testModel>/aribaCreateStatus}" state="{testModel>/aribaCreateStatusState}"/>
+          </HBox>
+        </Panel>
+
+        <!-- Vendor & Vendor PR fetch status (auto-triggered after POST) -->
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Text text="Vendor Fetch Status: " class="sapUiSmallMarginEnd"/>
+          <ObjectStatus text="{testModel>/aribaVendorStatus}" state="{testModel>/aribaVendorStatusState}"/>
+        </HBox>
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Text text="Vendor PR Fetch Status: " class="sapUiSmallMarginEnd"/>
+          <ObjectStatus text="{testModel>/aribaVendorPrStatus}" state="{testModel>/aribaVendorPrStatusState}"/>
+        </HBox>
+
+        <!-- Vendor results panel -->
+        <Panel headerText="Fetched Vendor Records (by AribaDocNo)" expandable="true" expanded="true"
+          visible="{= ${testModel>/aribaVendorResults}.length > 0}" class="sapUiSmallMarginTop">
+          <Table items="{testModel>/aribaVendorResults}" alternateRowColors="true">
+            <columns>
+              <Column><Text text="NFA Ref No"/></Column>
+              <Column><Text text="Vendor No"/></Column>
+              <Column><Text text="Vendor Name"/></Column>
+              <Column><Text text="Plant"/></Column>
+              <Column><Text text="Total Price"/></Column>
+              <Column><Text text="Net Landed Cost"/></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{testModel>NfaRefNo}"/>
+                  <Text text="{testModel>VendorNo}"/>
+                  <Text text="{testModel>VendorName}"/>
+                  <Text text="{testModel>Plant}"/>
+                  <Text text="{testModel>TotalPrice}"/>
+                  <Text text="{testModel>NetLandedCost}"/>
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </Panel>
+
+        <!-- Vendor PR results panel -->
+        <Panel headerText="Fetched Vendor PR Records (by AribaDocNo)" expandable="true" expanded="true"
+          visible="{= ${testModel>/aribaVendorPrResults}.length > 0}" class="sapUiSmallMarginTop">
+          <Table items="{testModel>/aribaVendorPrResults}" alternateRowColors="true">
+            <columns>
+              <Column><Text text="NFA Ref No"/></Column>
+              <Column><Text text="Vendor No"/></Column>
+              <Column><Text text="PR No"/></Column>
+              <Column><Text text="PR Item"/></Column>
+              <Column><Text text="Material"/></Column>
+              <Column><Text text="Qty"/></Column>
+              <Column><Text text="UOM"/></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{testModel>NfaRefNo}"/>
+                  <Text text="{testModel>VendorNo}"/>
+                  <Text text="{testModel>PrNo}"/>
+                  <Text text="{testModel>PrItem}"/>
+                  <Text text="{testModel>Material}"/>
+                  <Text text="{testModel>Qty}"/>
+                  <Text text="{testModel>Uom}"/>
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </Panel>
+
+        <!-- Vendor Item results panel -->
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Text text="Vendor Item Fetch Status: " class="sapUiSmallMarginEnd"/>
+          <ObjectStatus text="{testModel>/aribaVendorItemStatus}" state="{testModel>/aribaVendorItemStatusState}"/>
+        </HBox>
+        <Panel headerText="Fetched Vendor Item Records (by AribaDocNo)" expandable="true" expanded="true"
+          visible="{= ${testModel>/aribaVendorItemResults}.length > 0}" class="sapUiSmallMarginTop">
+          <Table items="{testModel>/aribaVendorItemResults}" alternateRowColors="true">
+            <columns>
+              <Column><Text text="NFA Ref No"/></Column>
+              <Column><Text text="Vendor No"/></Column>
+              <Column><Text text="Vendor Name"/></Column>
+              <Column><Text text="Plant"/></Column>
+              <Column><Text text="Total Price"/></Column>
+              <Column><Text text="Net Landed Cost"/></Column>
+              <Column><Text text="Status"/></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{testModel>NfaRefNo}"/>
+                  <Text text="{testModel>VendorNo}"/>
+                  <Text text="{testModel>VendorName}"/>
+                  <Text text="{testModel>Plant}"/>
+                  <Text text="{testModel>TotalPrice}"/>
+                  <Text text="{testModel>NetLandedCost}"/>
+                  <ObjectStatus text="{testModel>Status}" state="Information"/>
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </Panel>
+
+        <!-- ===== UPDATE NFA STATUS TO APPROVED ===== -->
+        <Title text="Update NFA Status: Post Approved" level="H3" class="sapUiMediumMarginTop"/>
+        <Text text="Enter NFA Ref No and post Status=Approved to et_nfa_detailsSet" class="sapUiTinyMarginBottom"/>
+        <HBox alignItems="Center" class="sapUiSmallMarginTop" wrap="Wrap">
+          <Input placeholder="NFA Ref No" value="{testModel>/approveNfaRefNo}" width="250px"/>
+          <Button text="Post Status: Approved" type="Emphasized" icon="sap-icon://accept"
+            press="onPostNfaStatusApproved" class="sapUiSmallMarginBegin"/>
+        </HBox>
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Text text="Approve Status: " class="sapUiSmallMarginEnd"/>
+          <ObjectStatus text="{testModel>/approveStatus}" state="{testModel>/approveStatusState}"/>
+        </HBox>
+
+        <!-- Step 3: Manual fetch vendor & vendor PR by AribaDocNo -->
+        <Text text="Step 3: Manually fetch Vendor &amp; Vendor PR by AribaDocNo" class="sapUiSmallMarginTop sapUiTinyMarginBottom"/>
+        <HBox alignItems="Center" class="sapUiSmallMarginTop" wrap="Wrap">
+          <Input placeholder="e.g. ARIBA-0001" value="{testModel>/aribaVendorFetchDocNo}" width="250px"/>
+          <Button text="Fetch Vendor Data" type="Default" icon="sap-icon://search"
+            press="onFetchVendorByAribaDocNo" class="sapUiSmallMarginBegin"/>
+        </HBox>
+
+        <!-- Step 4: Manual fetch by AribaDocNo + Status=NEW -->
+        <Text text="Step 3: Manually fetch et_nfa_detailsSet by AribaDocNo + Status=NEW" class="sapUiSmallMarginTop sapUiTinyMarginBottom"/>
+        <HBox alignItems="Center" class="sapUiSmallMarginTop" wrap="Wrap">
+          <Input placeholder="e.g. ARIBA-0001" value="{testModel>/aribaFetchDocNo}" width="250px"/>
+          <Button text="Fetch by Ariba Doc No" type="Default" icon="sap-icon://search"
+            press="onFetchNfaByAribaDocNo" class="sapUiSmallMarginBegin"/>
+        </HBox>
+
+        <!-- ===== APPROVAL DATA TEST SECTION ===== -->
+        <Title text="GET: et_approval_dataSet" level="H3" class="sapUiMediumMarginTop"/>
+        <Text text="Filter by NFA Ref No and/or Approver Mail ID (both optional)" class="sapUiTinyMarginBottom"/>
+        <HBox alignItems="Center" class="sapUiSmallMarginTop" wrap="Wrap">
+          <Input placeholder="NFA Ref No (optional)" value="{testModel>/approvalDataNfaRefNo}" width="220px"/>
+          <Input placeholder="ApproverMailId (optional)" value="{testModel>/approvalDataMailId}" width="250px"
+            class="sapUiSmallMarginBegin"/>
+          <Button text="Fetch Approval Data" type="Default" icon="sap-icon://search"
+            press="onFetchApprovalData" class="sapUiSmallMarginBegin"/>
+        </HBox>
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Text text="Approval Data Status: " class="sapUiSmallMarginEnd"/>
+          <ObjectStatus text="{testModel>/approvalDataStatus}" state="{testModel>/approvalDataStatusState}"/>
+        </HBox>
+        <Panel headerText="Approval Data Results" expandable="true" expanded="true"
+          visible="{= ${testModel>/approvalDataResults}.length > 0}" class="sapUiSmallMarginTop">
+          <Table items="{testModel>/approvalDataResults}" alternateRowColors="true">
+            <columns>
+              <Column><Text text="NFA Ref No"/></Column>
+              <Column><Text text="Sno"/></Column>
+              <Column><Text text="SAP ID"/></Column>
+              <Column><Text text="Approver Mail ID"/></Column>
+              <Column><Text text="Approved/Rejected/Info"/></Column>
+              <Column><Text text="Admin ID"/></Column>
+              <Column><Text text="Submit"/></Column>
+              <Column><Text text="Status Updated On"/></Column>
+              <Column><Text text="Rejection Remarks"/></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{testModel>NfaRefNo}"/>
+                  <Text text="{testModel>Sno}"/>
+                  <Text text="{testModel>SapId}"/>
+                  <Text text="{testModel>ApproverMailId}"/>
+                  <ObjectStatus text="{testModel>ApprovedRejectInfo}" state="Information"/>
+                  <Text text="{testModel>AdminId}"/>
+                  <Text text="{testModel>Sumbit}"/>
+                  <Text text="{testModel>StatusUpdatedOn}"/>
+                  <Text text="{testModel>RejectionRemarks}"/>
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </Panel>
+
+        <!-- ===== FETCH ALL APPROVAL DATA SECTION ===== -->
+        <Title text="GET All: et_approval_dataSet" level="H3" class="sapUiMediumMarginTop"/>
+        <Text text="Fetch all records from et_approval_dataSet without any filter" class="sapUiTinyMarginBottom"/>
+        <HBox alignItems="Center" class="sapUiSmallMarginTop">
+          <Button text="Fetch All Approval Data" type="Emphasized" icon="sap-icon://download"
+            press="onFetchAllApprovalData"/>
+          <ObjectStatus text="{testModel>/approvalDataAllStatus}" state="{testModel>/approvalDataAllStatusState}"
+            class="sapUiSmallMarginBegin"/>
+        </HBox>
+        <Panel headerText="All Approval Data Results" expandable="true" expanded="true"
+          visible="{= ${testModel>/approvalDataAllResults}.length > 0}" class="sapUiSmallMarginTop">
+          <t:Table
+            xmlns:t="sap.ui.table"
+            rows="{testModel>/approvalDataAllResults}"
+            visibleRowCount="10"
+            selectionMode="None"
+            alternateRowColors="true">
+            <t:columns>
+              <t:Column width="10rem"><Label text="NFA Ref No"/><t:template><Text text="{testModel>NfaRefNo}"/></t:template></t:Column>
+              <t:Column width="5rem"><Label text="Sno"/><t:template><Text text="{testModel>Sno}"/></t:template></t:Column>
+              <t:Column width="8rem"><Label text="SAP ID"/><t:template><Text text="{testModel>SapId}"/></t:template></t:Column>
+              <t:Column width="14rem"><Label text="Approver Mail ID"/><t:template><Text text="{testModel>ApproverMailId}"/></t:template></t:Column>
+              <t:Column width="10rem"><Label text="Approved/Rejected/Info"/><t:template><ObjectStatus text="{testModel>ApprovedRejectInfo}" state="Information"/></t:template></t:Column>
+              <t:Column width="8rem"><Label text="Admin ID"/><t:template><Text text="{testModel>AdminId}"/></t:template></t:Column>
+              <t:Column width="6rem"><Label text="Submit"/><t:template><Text text="{testModel>Sumbit}"/></t:template></t:Column>
+              <t:Column width="12rem"><Label text="Status Updated On"/><t:template><Text text="{testModel>StatusUpdatedOn}"/></t:template></t:Column>
+              <t:Column width="14rem"><Label text="Rejection Remarks"/><t:template><Text text="{testModel>RejectionRemarks}"/></t:template></t:Column>
+            </t:columns>
+          </t:Table>
+        </Panel>
+
+        <!-- ===== APPROVAL FORM TEST SECTION ===== -->
+        <Title text="GET: et_approval_formSet" level="H3" class="sapUiMediumMarginTop"/>
+        <HBox alignItems="Center" class="sapUiSmallMarginTop" wrap="Wrap">
+          <Input placeholder="NFA Ref No (optional)" value="{testModel>/approvalFormNfaRefNo}" width="220px"/>
+          <Button text="Fetch Approval Form" type="Default" icon="sap-icon://document"
+            press="onFetchApprovalForm" class="sapUiSmallMarginBegin"/>
+        </HBox>
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Text text="Approval Form Status: " class="sapUiSmallMarginEnd"/>
+          <ObjectStatus text="{testModel>/approvalFormStatus}" state="{testModel>/approvalFormStatusState}"/>
+        </HBox>
+        <Panel headerText="Approval Form Results" expandable="true" expanded="true"
+          visible="{= ${testModel>/approvalFormResults}.length > 0}" class="sapUiSmallMarginTop">
+          <Table items="{testModel>/approvalFormResults}" alternateRowColors="true">
+            <columns>
+              <Column><Text text="NFA Ref No"/></Column>
+              <Column><Text text="Vendor Name"/></Column>
+              <Column><Text text="Discipline"/></Column>
+              <Column><Text text="PO Type"/></Column>
+              <Column><Text text="Currency"/></Column>
+              <Column><Text text="Incoterm"/></Column>
+              <Column><Text text="Budgeted Amt"/></Column>
+              <Column><Text text="PO Amount"/></Column>
+              <Column><Text text="LPP Amount"/></Column>
+              <Column><Text text="ICE Amount"/></Column>
+              <Column><Text text="Contract Eff Date"/></Column>
+              <Column><Text text="Contract Deliv Date"/></Column>
+              <Column><Text text="Mobilization Date"/></Column>
+              <Column><Text text="Impact on Schedule"/></Column>
+              <Column><Text text="Impact Remarks"/></Column>
+              <Column><Text text="WBS Info"/></Column>
+              <Column><Text text="Deviation Comments"/></Column>
+              <Column><Text text="Special Comm Terms"/></Column>
+              <Column><Text text="Recommendation"/></Column>
+              <Column><Text text="Additional Info"/></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{testModel>NfaRefNo}"/>
+                  <Text text="{testModel>VendorName}"/>
+                  <Text text="{testModel>Discipline}"/>
+                  <Text text="{testModel>PoType}"/>
+                  <Text text="{testModel>Currency}"/>
+                  <Text text="{testModel>Incoterm}"/>
+                  <Text text="{testModel>BudgetedAmount}"/>
+                  <Text text="{testModel>PoAmount}"/>
+                  <Text text="{testModel>LppAmount}"/>
+                  <Text text="{testModel>IceAmount}"/>
+                  <Text text="{testModel>ContractEffDate}"/>
+                  <Text text="{testModel>ContractDelivDate}"/>
+                  <Text text="{testModel>MobilizationDate}"/>
+                  <Text text="{testModel>ImpactOnSchedule}"/>
+                  <Text text="{testModel>ImpactRemarks}"/>
+                  <Text text="{testModel>WbsInfo}"/>
+                  <Text text="{testModel>DeviationComments}"/>
+                  <Text text="{testModel>SpecialCommTerms}"/>
+                  <Text text="{testModel>Recommendation}"/>
+                  <Text text="{testModel>AdditionalInfo}"/>
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </Panel>
+
+        <!-- APPROVAL TABLE TEST SECTION -->
+        <Title text="GET: et_approval_tableSet" level="H3" class="sapUiMediumMarginTop"/>
+        <Button text="Fetch Approval Table" type="Default" icon="sap-icon://table-view"
+          press="onFetchApprovalTable" class="sapUiSmallMarginTop"/>
+
+        <!-- POST SECTION -->
+        <Title text="Step 1: Post Data" level="H3" class="sapUiMediumMarginTop"/>
+        <Button text="Start Sequential Post Test" type="Emphasized"
+          icon="sap-icon://upload" press="onTestSequentialPost" class="sapUiSmallMarginTop"/>
+
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Text text="Status: " class="sapUiSmallMarginEnd"/>
+          <ObjectStatus text="{testModel>/status}" state="{testModel>/statusState}"/>
+        </HBox>
+
+        <!-- FETCH SECTION -->
+        <Title text="Step 2: Fetch Data by NFA Ref No" level="H3" class="sapUiMediumMarginTop"/>
+        <Text text="Auto-filled after post, or enter manually to fetch any NFA" class="sapUiTinyMarginBottom"/>
+        <HBox alignItems="Center" class="sapUiSmallMarginTop">
+          <Input placeholder="e.g. 1000001"
+            value="{testModel>/nfaRefNo}" width="300px"/>
+          <Button text="Fetch All Data" type="Emphasized" icon="sap-icon://download"
+            press="onFetchAll" class="sapUiSmallMarginBegin"/>
+        </HBox>
+
+        <!-- NFA LIST SECTION -->
+        <Title text="Step 3: Browse All NFA Records" level="H3" class="sapUiMediumMarginTop"/>
+        <HBox alignItems="Center" class="sapUiSmallMarginTop">
+          <Button text="Fetch All NFA List" type="Default" icon="sap-icon://list"
+            press="onFetchAllNfaList"/>
+          <Text text="{testModel>/nfaListStatus}" class="sapUiSmallMarginBegin"/>
+        </HBox>
+
+        <!-- DEBUG PANEL - shows exactly what backend returned -->
+        <Panel headerText="Debug: Filter URL &amp; Raw Response"
+          expandable="true" expanded="true"
+          class="sapUiSmallMarginTop">
+          <TextArea value="{testModel>/debugRawResponse}" editable="false"
+            width="100%" rows="8" growing="true"/>
+        </Panel>
+        <Panel headerText="All NFA Records (click a row to load its details below)"
+          expandable="true" expanded="true"
+          visible="{= ${testModel>/nfaList}.length > 0}" class="sapUiSmallMarginTop">
+          <List items="{testModel>/nfaList}" mode="SingleSelectMaster"
+            selectionChange="onSelectNfaFromList">
+            <StandardListItem
+              title="{testModel>NfaRefNo}"
+              description="{testModel>NfaTitle} | {testModel>CompanyCode} | {testModel>Status}"
+              info="{testModel>PrBudget}"
+              infoState="Information"/>
+          </List>
+        </Panel>
+
+        <!-- ===== NFA DETAILS ===== -->
+        <Panel headerText="NFA Details" expandable="true" expanded="true"
+          visible="{= !!${testModel>/nfa/NfaRefNo}}" class="sapUiMediumMarginTop">
+          <f:SimpleForm editable="false" layout="ResponsiveGridLayout" columnsL="3" columnsM="2" columnsXL="4">
+            <f:content>
+              <Label text="NFA Ref No"/>        <Text text="{testModel>/nfa/NfaRefNo}"/>
+              <Label text="Ariba Doc No"/>      <Text text="{testModel>/nfa/AribaDocNo}"/>
+              <Label text="NFA Type"/>          <Text text="{testModel>/nfa/NfaType}"/>
+              <Label text="NFA Type Desc"/>     <Text text="{testModel>/nfa/NfaTypeDesc}"/>
+              <Label text="NFA Title"/>         <Text text="{testModel>/nfa/NfaTitle}"/>
+              <Label text="Company Code"/>      <Text text="{testModel>/nfa/CompanyCode}"/>
+              <Label text="Company Desc"/>      <Text text="{testModel>/nfa/CompanyDescription}"/>
+              <Label text="Purchase Org"/>      <Text text="{testModel>/nfa/PurchaseOrg}"/>
+              <Label text="Purchase Org Desc"/> <Text text="{testModel>/nfa/PurchaseOrgDesc}"/>
+              <Label text="Purchase Group"/>    <Text text="{testModel>/nfa/PurchaseGroup}"/>
+              <Label text="Purchase Grp Desc"/> <Text text="{testModel>/nfa/PurchaseGroupDesc}"/>
+              <Label text="Remarks"/>           <Text text="{testModel>/nfa/Remarks}"/>
+              <Label text="BI Date"/>           <Text text="{testModel>/nfa/BiDate}"/>
+              <Label text="PR Budget"/>         <Text text="{testModel>/nfa/PrBudget}"/>
+              <Label text="Long Text"/>         <Text text="{testModel>/nfa/LongText}"/>
+              <Label text="LD Clause"/>         <Text text="{testModel>/nfa/LdClause}"/>
+              <Label text="Advance BG"/>        <Text text="{testModel>/nfa/AdvanceBg}"/>
+              <Label text="Advance BG Amt"/>    <Text text="{testModel>/nfa/AdavanceBgAmt}"/>
+              <Label text="Performance BG"/>    <Text text="{testModel>/nfa/PerformanceBg}"/>
+              <Label text="Performance BP Amt"/><Text text="{testModel>/nfa/PerformanceBpAmt}"/>
+              <Label text="Lowest Basis"/>      <Text text="{testModel>/nfa/LowestBasis}"/>
+              <Label text="Tech Accep Low"/>    <Text text="{testModel>/nfa/TechAccepLowBasis}"/>
+              <Label text="Proprietary Basis"/> <Text text="{testModel>/nfa/ProprietaryBasis}"/>
+              <Label text="Single Tender"/>     <Text text="{testModel>/nfa/SingleTenderBasis}"/>
+              <Label text="Repeat Order"/>      <Text text="{testModel>/nfa/RepeatOrderBasis}"/>
+              <Label text="Rate Contract"/>     <Text text="{testModel>/nfa/RateContract}"/>
+              <Label text="Justification"/>     <Text text="{testModel>/nfa/JustificationRemarks}"/>
+              <Label text="Scope Of Work"/>     <Text text="{testModel>/nfa/ScopeOfWork}"/>
+              <Label text="Additional Info"/>   <Text text="{testModel>/nfa/AdditionalInfo}"/>
+              <Label text="Negotiation Strat"/> <Text text="{testModel>/nfa/NegotiationStrategy}"/>
+              <Label text="Vendor Category"/>   <Text text="{testModel>/nfa/VendorCategory}"/>
+              <Label text="Status"/>            <ObjectStatus text="{testModel>/nfa/Status}" state="Information"/>
+              <Label text="Requested Approval"/><Text text="{testModel>/nfa/RequestedApprovalOn}"/>
+              <Label text="Mandt"/>             <Text text="{testModel>/nfa/Mandt}"/>
+            </f:content>
+          </f:SimpleForm>
+        </Panel>
+
+        <!-- ===== VENDOR DETAILS ===== -->
+        <Panel headerText="Vendor Details" expandable="true" expanded="true"
+          visible="{= ${testModel>/vendors}.length > 0}" class="sapUiMediumMarginTop">
+          <Table items="{testModel>/vendors}" alternateRowColors="true">
+            <columns>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="NFA Ref No"/></Column>
+              <Column><Text text="Vendor No"/></Column>
+              <Column><Text text="Vendor Name"/></Column>
+              <Column><Text text="Plant"/></Column>
+              <Column><Text text="Initial Price"/></Column>
+              <Column><Text text="Negotiated Price"/></Column>
+              <Column><Text text="Total Price"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="LPP"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="TA"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Vendor QA"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="GST Credit"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="GST Remarks"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Delivery Remarks"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Basic Total Amt"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="PF %"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="PF Amount"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Freight"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="GST %"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="GST Amount"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Insurance"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Net Landed Cost"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Commercial Rating"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Delivery Date"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Payment Terms"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Payment Terms Desc"/></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{testModel>NfaRefNo}"/>
+                  <Text text="{testModel>VendorNo}"/>
+                  <Text text="{testModel>VendorName}"/>
+                  <Text text="{testModel>Plant}"/>
+                  <Text text="{testModel>InitialPrice}"/>
+                  <Text text="{testModel>NegotiatedPrice}"/>
+                  <Text text="{testModel>TotalPrice}"/>
+                  <Text text="{testModel>Lpp}"/>
+                  <Text text="{testModel>Ta}"/>
+                  <Text text="{testModel>VendorQa}"/>
+                  <Text text="{testModel>GstCredit}"/>
+                  <Text text="{testModel>GstRemarks}"/>
+                  <Text text="{testModel>DeliveryRemarks}"/>
+                  <Text text="{testModel>BasicTotalAmt}"/>
+                  <Text text="{testModel>PfPercent}"/>
+                  <Text text="{testModel>PfAmount}"/>
+                  <Text text="{testModel>Freight}"/>
+                  <Text text="{testModel>GstPercentage}"/>
+                  <Text text="{testModel>GstAmount}"/>
+                  <Text text="{testModel>Insurance}"/>
+                  <Text text="{testModel>NetLandedCost}"/>
+                  <Text text="{testModel>CommercialRating}"/>
+                  <Text text="{testModel>DeliveryDate}"/>
+                  <Text text="{testModel>PaymentTerms}"/>
+                  <Text text="{testModel>PaymentTermsDesc}"/>
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </Panel>
+
+        <!-- ===== ATTACHMENT SECTION ===== -->
+        <Title text="Attachments: Post for NFA000000000001" level="H3" class="sapUiMediumMarginTop"/>
+
+        <!-- Add attachment row -->
+        <HBox alignItems="Center" class="sapUiSmallMarginTop" wrap="Wrap">
+          <Select id="attachTypeSelect" width="160px">
+            <items>
+              <core:Item xmlns:core="sap.ui.core" key="supplier" text="Supplier Doc"/>
+              <core:Item xmlns:core="sap.ui.core" key="buyer" text="Buyer Doc"/>
+            </items>
+          </Select>
+          <Input id="attachVendorNoInput" placeholder="VendorNo (supplier only)" width="180px"
+            class="sapUiSmallMarginBegin"/>
+          <unified:FileUploader
+            xmlns:unified="sap.ui.unified"
+            id="attachFileUploader"
+            buttonOnly="false"
+            uploadOnChange="false"
+            fileType="pdf,png,jpg,jpeg,xlsx,docx"
+            change="onAttachFileChange"
+            class="sapUiSmallMarginBegin"
+            placeholder="Choose file..."/>
+          <Button text="Add" icon="sap-icon://add" press="onAddAttachmentRow"
+            class="sapUiSmallMarginBegin"/>
+        </HBox>
+
+        <!-- Staged attachments table -->
+        <Panel headerText="Staged Attachments" expandable="false"
+          visible="{= ${testModel>/stagedAttachments}.length > 0}" class="sapUiSmallMarginTop">
+          <Table items="{testModel>/stagedAttachments}" alternateRowColors="true">
+            <columns>
+              <Column width="4rem"><Text text="Sno"/></Column>
+              <Column><Text text="Type"/></Column>
+              <Column><Text text="File Name"/></Column>
+              <Column><Text text="MIME Type"/></Column>
+              <Column width="4rem"><Text text="Remove"/></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{testModel>Sno}"/>
+                  <Text text="{testModel>type}"/>
+                  <Text text="{testModel>fileName}"/>
+                  <Text text="{testModel>mimeType}"/>
+                  <Button icon="sap-icon://delete" type="Transparent" press="onRemoveAttachmentRow"/>
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </Panel>
+
+        <HBox class="sapUiSmallMarginTop">
+          <Button text="Post Attachments" type="Emphasized" icon="sap-icon://attachment"
+            press="onPostAttachment"
+            enabled="{testModel>/hasStaged}"/>
+          <Button text="Fetch Attachments" type="Default" icon="sap-icon://download"
+            press="onFetchAttachments" class="sapUiSmallMarginBegin"/>
+        </HBox>
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Text text="Attachment Status: " class="sapUiSmallMarginEnd"/>
+          <ObjectStatus text="{testModel>/attachmentStatus}" state="{testModel>/attachmentStatusState}"/>
+        </HBox>
+
+        <!-- Fetched attachments -->
+        <Panel headerText="Fetched Attachments" expandable="true" expanded="true"
+          visible="{= ${testModel>/attachments}.length > 0}" class="sapUiSmallMarginTop">
+          <Table items="{testModel>/attachments}" alternateRowColors="true">
+            <columns>
+              <Column width="5rem"><Text text="Type"/></Column>
+              <Column width="4rem"><Text text="Sno"/></Column>
+              <Column><Text text="NFA Ref No"/></Column>
+              <Column><Text text="Doc Name"/></Column>
+              <Column><Text text="MIME Type"/></Column>
+              <Column><Text text="VendorNo"/></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{testModel>_type}"/>
+                  <Text text="{testModel>Sno}"/>
+                  <Text text="{testModel>NfaRefNo}"/>
+                  <Text text="{= ${testModel>BuyerDoc} || ${testModel>SupplierDoc}}"/>
+                  <Text text="{= ${testModel>BuyerDocMime} || ${testModel>SupplierDocMime}}"/>
+                  <Text text="{testModel>VendorNo}"/>
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </Panel>
+
+        <!-- ===== SEARCH HELP TEST SECTION ===== -->
+        <Title text="Search Help (et_nfa_search_helpSet) Tests" level="H3" class="sapUiMediumMarginTop"/>
+        <Text text="Test the et_nfa_search_help entity: fetch all, filter by Type, or read a single record by composite key." class="sapUiTinyMarginBottom"/>
+
+        <!-- Case 1: Fetch All -->
+        <HBox alignItems="Center" class="sapUiSmallMarginTop" wrap="Wrap">
+          <Button text="Case 1: Fetch All Records" type="Default" icon="sap-icon://list"
+            press="onSearchHelpFetchAll"/>
+        </HBox>
+
+        <!-- Case 2: Fetch by Type -->
+        <HBox alignItems="Center" class="sapUiSmallMarginTop" wrap="Wrap">
+          <Input id="searchHelpTypeInput" placeholder="Enter Type (e.g. STATUS)" width="220px"
+            value="{testModel>/searchHelpType}"/>
+          <Button text="Case 2: Fetch by Type" type="Default" icon="sap-icon://filter"
+            press="onSearchHelpFetchByType" class="sapUiSmallMarginBegin"/>
+        </HBox>
+
+        <!-- Case 3: Fetch by Type + KeyDataType (single record) -->
+        <HBox alignItems="Center" class="sapUiSmallMarginTop" wrap="Wrap">
+          <Input id="searchHelpKeyInput" placeholder="Enter KeyDataType (e.g. APPR)" width="220px"
+            value="{testModel>/searchHelpKey}"/>
+          <Button text="Case 3: Read Single Record" type="Default" icon="sap-icon://key"
+            press="onSearchHelpReadSingle" class="sapUiSmallMarginBegin"/>
+        </HBox>
+
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Text text="Search Help Status: " class="sapUiSmallMarginEnd"/>
+          <ObjectStatus text="{testModel>/searchHelpStatus}" state="{testModel>/searchHelpStatusState}"/>
+        </HBox>
+
+        <Panel headerText="Search Help Results" expandable="true" expanded="true"
+          visible="{= ${testModel>/searchHelpResults}.length > 0}" class="sapUiSmallMarginTop">
+          <Table items="{testModel>/searchHelpResults}" alternateRowColors="true">
+            <columns>
+              <Column><Text text="Type"/></Column>
+              <Column><Text text="KeyDataType"/></Column>
+              <Column><Text text="Description"/></Column>
+              <Column><Text text="Mandt"/></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{testModel>Type}"/>
+                  <Text text="{testModel>KeyDataType}"/>
+                  <Text text="{testModel>Description}"/>
+                  <Text text="{testModel>Mandt}"/>
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </Panel>
+
+        <!-- ===== PAYMENT TERMS TEST SECTION ===== -->
+        <Title text="GET: ZnfaShPaymentTermsSet (by Zterm)" level="H3" class="sapUiMediumMarginTop"/>
+        <Button text="Fetch Payment Terms" type="Default" icon="sap-icon://search"
+            press="onFetchPaymentTerms" class="sapUiSmallMarginTop"/>
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Text text="Payment Terms Status: " class="sapUiSmallMarginEnd"/>
+          <ObjectStatus text="{testModel>/paymentTermsStatus}" state="{testModel>/paymentTermsStatusState}"/>
+        </HBox>
+        <Panel headerText="Payment Terms Results" expandable="true" expanded="true"
+          visible="{= ${testModel>/paymentTermsResults}.length > 0}" class="sapUiSmallMarginTop">
+          <Table items="{testModel>/paymentTermsResults}" alternateRowColors="true">
+            <columns>
+              <Column><Text text="Zterm"/></Column>
+              <Column><Text text="Description"/></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{testModel>Zterm}"/>
+                  <Text text="{testModel>Description}"/>
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </Panel>
+
+        <!-- ===== VENDOR PR DETAILS ===== -->
+        <Panel headerText="Vendor PR Details" expandable="true" expanded="true"
+          visible="{= ${testModel>/vendorPR}.length > 0}" class="sapUiMediumMarginTop">
+          <Table items="{testModel>/vendorPR}" alternateRowColors="true">
+            <columns>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="NFA Ref No"/></Column>
+              <Column><Text text="Vendor No"/></Column>
+              <Column><Text text="PR No"/></Column>
+              <Column><Text text="PR Item"/></Column>
+              <Column><Text text="Material"/></Column>
+              <Column><Text text="Material Desc"/></Column>
+              <Column><Text text="Qty"/></Column>
+              <Column><Text text="UOM"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Plant"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Plant Desc"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Mat Group"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Mat Group Desc"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Purch Org"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Purch Org Desc"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Purch Group"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Purch Grp Desc"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Remaining Qty"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Split PO Qty"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Finalized Price"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Freight"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="GST %"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="GST Amount"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Insurance"/></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Mandt"/></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{testModel>NfaRefNo}"/>
+                  <Text text="{testModel>VendorNo}"/>
+                  <Text text="{testModel>PrNo}"/>
+                  <Text text="{testModel>PrItem}"/>
+                  <Text text="{testModel>Material}"/>
+                  <Text text="{testModel>MaterialDescription}"/>
+                  <Text text="{testModel>Qty}"/>
+                  <Text text="{testModel>Uom}"/>
+                  <Text text="{testModel>Plant}"/>
+                  <Text text="{testModel>PlantDescription}"/>
+                  <Text text="{testModel>MaterialGroup}"/>
+                  <Text text="{testModel>MaterialGroupDescription}"/>
+                  <Text text="{testModel>PurchaseOrg}"/>
+                  <Text text="{testModel>PurchaseOrgDesc}"/>
+                  <Text text="{testModel>PurchaseGroup}"/>
+                  <Text text="{testModel>PurchaseGroupDesc}"/>
+                  <Text text="{testModel>RemainingQty}"/>
+                  <Text text="{testModel>SplitPoQty}"/>
+                  <Text text="{testModel>FinilizedLinePrice}"/>
+                  <Text text="{testModel>Freight}"/>
+                  <Text text="{testModel>GstPercentage}"/>
+                  <Text text="{testModel>GstAmount}"/>
+                  <Text text="{testModel>Insurance}"/>
+                  <Text text="{testModel>Mandt}"/>
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </Panel>
+
+        <!-- ===== VERSION DATA SECTION ===== -->
+        <Title text="GET: et_version_logSet" level="H3" class="sapUiMediumMarginTop"/>
+        <Text text="Enter NFA Ref No to fetch all version records. Version No is optional." class="sapUiTinyMarginBottom"/>
+        <HBox alignItems="Center" class="sapUiSmallMarginTop" wrap="Wrap">
+          <Input placeholder="NFA Ref No" value="{testModel>/versionDataNfaRefNo}" width="220px"/>
+          <Input placeholder="Version No (optional)" value="{testModel>/versionDataVersionNo}" width="200px"
+            class="sapUiSmallMarginBegin"/>
+          <Button text="Fetch Version Data" type="Default" icon="sap-icon://search"
+            press="onFetchVersionData" class="sapUiSmallMarginBegin"/>
+          <ObjectStatus text="{testModel>/versionDataStatus}" state="{testModel>/versionDataStatusState}"
+            class="sapUiSmallMarginBegin"/>
+        </HBox>
+        <Panel headerText="Version Data Results" expandable="false"
+          visible="{= ${testModel>/versionDataResults}.length > 0}" class="sapUiSmallMarginTop">
+          <t:Table
+            xmlns:t="sap.ui.table"
+            rows="{testModel>/versionDataResults}"
+            visibleRowCount="5"
+            selectionMode="None"
+            alternateRowColors="true">
+            <t:columns>
+              <t:Column width="12rem"><Label text="NFA Ref No"/><t:template><Text text="{testModel>NfaRefNo}"/></t:template></t:Column>
+              <t:Column width="6rem"><Label text="Version"/><t:template><Text text="{testModel>Version}"/></t:template></t:Column>
+              <t:Column width="8rem"><Label text="Sent For Approval"/><t:template><Text text="{testModel>SentForApproval}"/></t:template></t:Column>
+              <t:Column width="12rem"><Label text="NFA Type"/><t:template><Text text="{testModel>NfaType}"/></t:template></t:Column>
+              <t:Column width="16rem"><Label text="NFA Title"/><t:template><Text text="{testModel>NfaTitle}"/></t:template></t:Column>
+              <t:Column width="10rem"><Label text="Status"/><t:template><ObjectStatus text="{testModel>Status}" state="Information"/></t:template></t:Column>
+              <t:Column width="10rem"><Label text="PR Budget"/><t:template><Text text="{testModel>PrBudget}"/></t:template></t:Column>
+              <t:Column width="10rem"><Label text="Currency"/><t:template><Text text="{testModel>Currency}"/></t:template></t:Column>
+              <t:Column width="12rem"><Label text="Purchase Group"/><t:template><Text text="{testModel>PurchaseGroup}"/></t:template></t:Column>
+              <t:Column width="12rem"><Label text="Ariba Doc No"/><t:template><Text text="{testModel>AribaDocNo}"/></t:template></t:Column>
+            </t:columns>
+          </t:Table>
+        </Panel>
+
+        <!-- ===== VENDOR AMENDMENT POST SECTION ===== -->
+        <Title text="POST: et_vendor_detailsSet (ReasonForAmendment)" level="H3" class="sapUiMediumMarginTop"/>
+        <Text text="Provide NFA Ref No and Reason For Amendment — posts to et_vendor_detailsSet, then fetches full vendor item output" class="sapUiTinyMarginBottom"/>
+        <HBox alignItems="Center" class="sapUiSmallMarginTop" wrap="Wrap">
+          <Input placeholder="NFA Ref No" value="{testModel>/vendorAmendNfaRefNo}" width="220px"/>
+          <Input placeholder="Reason For Amendment" value="{testModel>/vendorAmendReason}" width="300px"
+            class="sapUiSmallMarginBegin"/>
+          <Button text="Post Amendment" type="Emphasized" icon="sap-icon://paper-plane"
+            press="onPostVendorAmendment" class="sapUiSmallMarginBegin"/>
+        </HBox>
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Text text="Amendment Status: " class="sapUiSmallMarginEnd"/>
+          <ObjectStatus text="{testModel>/vendorAmendStatus}" state="{testModel>/vendorAmendStatusState}"/>
+        </HBox>
+        <Panel headerText="Vendor Item Results (after Amendment POST)" expandable="false"
+          visible="{= ${testModel>/vendorAmendResults}.length > 0}" class="sapUiSmallMarginTop">
+          <t:Table
+            xmlns:t="sap.ui.table"
+            rows="{testModel>/vendorAmendResults}"
+            visibleRowCount="5"
+            selectionMode="None"
+            alternateRowColors="true">
+            <t:columns>
+              <t:Column width="10rem"><Label text="NFA Ref No"/><t:template><Text text="{testModel>NfaRefNo}"/></t:template></t:Column>
+              <t:Column width="8rem"><Label text="Vendor No"/><t:template><Text text="{testModel>VendorNo}"/></t:template></t:Column>
+              <t:Column width="14rem"><Label text="Vendor Name"/><t:template><Text text="{testModel>VendorName}"/></t:template></t:Column>
+              <t:Column width="8rem"><Label text="Plant"/><t:template><Text text="{testModel>Plant}"/></t:template></t:Column>
+              <t:Column width="10rem"><Label text="Total Price"/><t:template><Text text="{testModel>TotalPrice}"/></t:template></t:Column>
+              <t:Column width="12rem"><Label text="Net Landed Cost"/><t:template><Text text="{testModel>NetLandedCost}"/></t:template></t:Column>
+              <t:Column width="10rem"><Label text="Basic Total"/><t:template><Text text="{testModel>BasicTotalAmt}"/></t:template></t:Column>
+              <t:Column width="10rem"><Label text="PF Amount"/><t:template><Text text="{testModel>PfAmount}"/></t:template></t:Column>
+              <t:Column width="10rem"><Label text="GST Amount"/><t:template><Text text="{testModel>GstAmount}"/></t:template></t:Column>
+              <t:Column width="10rem"><Label text="Freight"/><t:template><Text text="{testModel>Freight}"/></t:template></t:Column>
+              <t:Column width="10rem"><Label text="Insurance"/><t:template><Text text="{testModel>Insurance}"/></t:template></t:Column>
+              <t:Column width="10rem"><Label text="Comm. Rating"/><t:template><Text text="{testModel>CommercialRating}"/></t:template></t:Column>
+              <t:Column width="10rem"><Label text="Payment Terms"/><t:template><Text text="{testModel>PaymentTerms}"/></t:template></t:Column>
+              <t:Column width="20rem"><Label text="Reason For Amendment"/><t:template><Text text="{testModel>ReasonForAmendment}"/></t:template></t:Column>
+            </t:columns>
+          </t:Table>
+        </Panel>
+
+        <!-- ===== VENDOR QUOTED SECTION ===== -->
+        <Title text="Vendor Quoted Section" level="H3" class="sapUiMediumMarginTop"/>
+        <HBox alignItems="Center" class="sapUiSmallMarginTop">
+          <Input placeholder="NFA Ref No" width="220px"
+            value="{testModel>/vendorQuotedNfaRefNo}"/>
+          <Button text="Fetch Vendors" type="Emphasized" icon="sap-icon://search"
+            press="onFetchVendorQuoted" class="sapUiSmallMarginBegin"/>
+          <ObjectStatus text="{testModel>/vendorQuotedStatus}"
+            state="{testModel>/vendorQuotedStatusState}"
+            class="sapUiSmallMarginBegin"/>
+        </HBox>
+
+        <Panel headerText="Vendor Quoted Details" expandable="false"
+          visible="{= ${testModel>/vendorQuotedList}.length > 0}" class="sapUiSmallMarginTop">
+          <Table items="{testModel>/vendorQuotedList}" alternateRowColors="true">
+            <columns>
+              <Column><Text text="Vendor No"/></Column>
+              <Column><Text text="Vendor Name"/></Column>
+              <Column><Text text="Plant"/></Column>
+              <Column><Text text="Total Price"/></Column>
+              <Column><Text text="Basic Total"/></Column>
+              <Column><Text text="Net Landed Cost"/></Column>
+              <Column><Text text="Commercial Rating"/></Column>
+              <Column><Text text="Attachment"/></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{testModel>VendorNo}"/>
+                  <Text text="{testModel>VendorName}"/>
+                  <Text text="{testModel>Plant}"/>
+                  <Text text="{testModel>TotalPrice}"/>
+                  <Text text="{testModel>BasicTotalAmt}"/>
+                  <Text text="{testModel>NetLandedCost}"/>
+                  <Text text="{testModel>CommercialRating}"/>
+                  <Button icon="sap-icon://attachment" text="Upload Document"
+                    type="Default" press="onOpenVendorAttachDialog"/>
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </Panel>
+
+        <!-- ===== NFA AMENDMENT (DocEdit Mode) TEST SECTION ===== -->
+        <Title text="POST: et_nfa_detailsSet (ReasonForAmendment - DocEdit Mode)" level="H3" class="sapUiMediumMarginTop"/>
+        <Text text="Simulates DocEdit mode update — ReasonForAmendment is mandatory before POST" class="sapUiTinyMarginBottom"/>
+        <HBox alignItems="Center" class="sapUiSmallMarginTop" wrap="Wrap">
+          <Input id="nfaAmendNfaRefNoInput" placeholder="NFA Ref No" value="{testModel>/nfaAmendNfaRefNo}" width="220px"
+            valueState="{testModel>/nfaAmendNfaRefNoState}"/>
+          <Input id="nfaAmendReasonInput" placeholder="Reason For Amendment (mandatory)" value="{testModel>/nfaAmendReason}" width="320px"
+            class="sapUiSmallMarginBegin"
+            valueState="{testModel>/nfaAmendReasonState}"
+            valueStateText="Reason For Amendment is mandatory in DocEdit mode"/>
+          <Button text="Post NFA Amendment" type="Emphasized" icon="sap-icon://paper-plane"
+            press="onPostNfaAmendment" class="sapUiSmallMarginBegin"/>
+        </HBox>
+        <HBox class="sapUiSmallMarginTop" alignItems="Center">
+          <Text text="NFA Amendment Status: " class="sapUiSmallMarginEnd"/>
+          <ObjectStatus text="{testModel>/nfaAmendStatus}" state="{testModel>/nfaAmendStatusState}"/>
+        </HBox>
+
+        <!-- ===== CREATE UPDATE BUTTON SET ===== -->
+        <Title text="GET: CreateUpdate_ButtonSet" level="H3" class="sapUiMediumMarginTop"/>
+        <Text text="Enter NFA Ref No to fetch CreateUpdate_Button records, then click Update on a row to POST to et_document_createSet" class="sapUiTinyMarginBottom"/>
+        <HBox alignItems="Center" class="sapUiSmallMarginTop" wrap="Wrap">
+          <Input placeholder="NFA Ref No" value="{testModel>/createUpdateBtnNfaRefNo}" width="250px"/>
+          <Button text="Fetch" type="Emphasized" icon="sap-icon://search"
+            press="onFetchCreateUpdateButton" class="sapUiSmallMarginBegin"/>
+          <ObjectStatus text="{testModel>/createUpdateBtnStatus}" state="{testModel>/createUpdateBtnStatusState}"
+            class="sapUiSmallMarginBegin"/>
+        </HBox>
+        <HBox alignItems="Center" class="sapUiSmallMarginTop" wrap="Wrap">
+          <Label text="DocTypeDesc:" class="sapUiSmallMarginEnd"/>
+          <Input placeholder="e.g. ZMTD - Mat-Serv PO-Domestic" value="{testModel>/docTypeDesc}" width="350px"/>
+        </HBox>
+        <Panel headerText="CreateUpdate_Button Results" expandable="false"
+          visible="{= ${testModel>/createUpdateBtnResults}.length > 0}" class="sapUiSmallMarginTop">
+          <Table items="{testModel>/createUpdateBtnResults}" alternateRowColors="true">
+            <columns>
+              <Column><Text text="NFA Ref No"/></Column>
+              <Column><Text text="Vendor No"/></Column>
+              <Column><Text text="Purchase Order"/></Column>
+              <Column><Text text="Contract No"/></Column>
+              <Column><Text text="Schl Agreement No"/></Column>
+              <Column><Text text="Document Type"/></Column>
+              <Column><Text text="PoCreate"/></Column>
+              <Column><Text text="ContractCreate"/></Column>
+              <Column><Text text="SaCreate"/></Column>
+              <Column width="6rem"><Text text="Action"/></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{testModel>NfaRefNo}"/>
+                  <Text text="{testModel>VendorNo}"/>
+                  <Text text="{testModel>PurchaseOrder}"/>
+                  <Text text="{testModel>ContractNo}"/>
+                  <Text text="{testModel>SchlAgreementNo}"/>
+                  <Text text="{testModel>DocumentType}"/>
+                  <ObjectStatus text="{= ${testModel>PurchaseOrder} ? 'X' : ''}" state="{= ${testModel>PurchaseOrder} ? 'Success' : 'None'}"/>
+                  <ObjectStatus text="{= ${testModel>ContractNo} ? 'X' : ''}" state="{= ${testModel>ContractNo} ? 'Success' : 'None'}"/>
+                  <ObjectStatus text="{= ${testModel>SchlAgreementNo} ? 'X' : ''}" state="{= ${testModel>SchlAgreementNo} ? 'Success' : 'None'}"/>
+                  <Button text="Update" type="Emphasized" icon="sap-icon://save"
+                    press="onPostDocumentCreate"/>
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+          <HBox class="sapUiSmallMargin" alignItems="Center">
+            <Text text="POST Status: " class="sapUiSmallMarginEnd"/>
+            <ObjectStatus text="{testModel>/docCreateStatus}" state="{testModel>/docCreateStatusState}"/>
+          </HBox>
+        </Panel>
+
+      </VBox>
+    </content>
+  </Page>
+</mvc:View>

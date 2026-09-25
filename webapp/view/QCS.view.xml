@@ -1,0 +1,321 @@
+<mvc:View
+  controllerName="com.df.nfa.creator_v2.controller.QCS"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:table="sap.ui.table">
+
+<Page title="{= 'QCS \u2013 Vendor Comparison' + (${view>/nfaVersion} !== null &amp;&amp; ${view>/nfaVersion} !== undefined ? ' | Version ' + ${view>/nfaVersion} : '') }">
+
+  <headerContent>
+    
+    <Button text="Back" type="Back" press="onBackNavigate"/>
+    <!-- <Button
+      text="Version"
+      type="Default"
+      icon="sap-icon://history"
+      press="onVersionPress"/> -->
+    <Button
+      text="Edit"
+      type="Emphasized"
+      icon="sap-icon://edit"
+      visible="{= !${view>/editable} &amp;&amp; !${view>/isApprovedMode} &amp;&amp; !${view>/isApprovalPending} }"
+      press="onToggleEdit"/>
+    <Button
+      text="Switch to View"
+      type="Default"
+      icon="sap-icon://display"
+      visible="{= ${view>/editable} &amp;&amp; !${view>/isApprovedMode} &amp;&amp; !${view>/isApprovalPending} }"
+      press="onToggleEdit"/>
+  </headerContent>
+
+  <content>
+    <!-- ================= PR SELECTION TOOLBAR ================= -->
+    <OverflowToolbar class="sapUiTinyMarginBottom">
+      <Label text="NFA Ref No:" design="Bold"/>
+      <Text text="{view>/nfaRefNo}" class="sapUiSmallMarginEnd"/>
+
+      <!-- <Label text="Reason for Amendment:" design="Bold" visible="{view>/showReasonForAmendment}"/>
+      <Input
+        width="280px"
+        placeholder="Enter reason for amendment"
+        value="{view>/ReasonForAmendment}"
+        maxLength="255"
+        enabled="{view>/editable}"
+        visible="{view>/showReasonForAmendment}"/> -->
+
+      <Label text="Selection Mode:" design="Bold"/>
+      <SegmentedButton
+        selectedKey="{view>/selectionMode}"
+        enabled="{= !${view>/hasTableData} &amp;&amp; ${view>/editable} }"
+        selectionChange="onSelectionModeChange">
+        <items>
+          <SegmentedButtonItem key="PR" text="Via PR"/>
+          <SegmentedButtonItem key="MANUAL" text="Via Manual"/>
+        </items>
+      </SegmentedButton>
+
+      <!-- PR mode controls -->
+      <Label text="PR Selection:" design="Bold" visible="{= ${view>/selectionMode} === 'PR' }"/>
+      <Input
+        width="180px"
+        placeholder="Select PR Number"
+        value="{view>/SelectedPR}"
+        showValueHelp="true"
+        enabled="{view>/editable}"
+        visible="{= ${view>/selectionMode} === 'PR' }"
+        valueHelpRequest="onPRNumberVH"/>
+      <Input
+        width="180px"
+        placeholder="Select PR Item"
+        value="{view>/SelectedPRItem}"
+        showValueHelp="true"
+        enabled="{= ${view>/editable} &amp;&amp; !!${view>/SelectedPR} }"
+        visible="{= ${view>/selectionMode} === 'PR' }"
+        valueHelpRequest="onPRItemVH"/>
+
+      <!-- Manual mode controls -->
+      <Label text="Material:" design="Bold" visible="{= ${view>/selectionMode} === 'MANUAL' }"/>
+      <Input
+        width="180px"
+        placeholder="Select Materials"
+        value="{view>/ManualMaterialDisplay}"
+        showValueHelp="true"
+        enabled="{view>/editable}"
+        visible="{= ${view>/selectionMode} === 'MANUAL' }"
+        valueHelpRequest="onManualMaterialVH"
+        submit="onManualMaterialEnter"/>
+
+      <ToolbarSpacer/>
+
+      <!-- Excel Download: always visible (template + data) -->
+      <Button
+        text="Download Template / Excel"
+        icon="sap-icon://download"
+        type="Default"
+        press="onDownloadExcel"/>
+
+      <!-- Excel Upload: only in edit mode -->
+      <Button
+        text="Upload Excel"
+        icon="sap-icon://upload"
+        type="Default"
+        visible="{= ${view>/editable} &amp;&amp; !${view>/isApprovedMode} &amp;&amp; !${view>/isApprovalPending} }"
+        press="onUploadExcel"/>
+    </OverflowToolbar>
+
+    <!-- ================= TREE TABLE (FULL WIDTH) ================= -->
+    <table:TreeTable
+      id="vendorTreeTable"
+      rows="{view>/TreeData}"
+      selectionMode="None"
+      expandFirstLevel="false"
+      visibleRowCount="25"
+      width="100%"
+      fixedColumnCount="4"
+      columnHeaderHeight="10"
+      enableColumnReordering="false"
+      rowHeight="30"
+      class="qcsTreeTable"
+      sort="onColumnSort"
+      filter="onColumnFilter">
+
+      <!-- ROW LEVEL STYLING -->
+      <table:rowSettingsTemplate>
+        <table:RowSettings
+          highlight="{=
+            ${view>NodeType} === 'PR' ? 'Information' :
+            ${view>NodeType} === 'SUMMARY' ? 'Success' :
+            'None'
+          }"/>
+      </table:rowSettingsTemplate>
+
+      <!-- DESCRIPTION COLUMN -->
+      <table:Column width="200px" >
+        <Label text="PR NO./Short Text" textAlign="Center" width="100%"/>
+        <table:template>
+          <HBox alignItems="Center" justifyContent="SpaceBetween" width="100%">
+            <Label
+              text="{=
+                ${view>NodeType} === 'PR' ? (${view>PrNumber} || '') :
+                ${view>NodeType} === 'ITEM' ? ((${view>PrItem} ? ${view>PrItem} + ' / ' : '') + (${view>MaterialDesc} || '')) :
+                (${view>Label} || '')
+              }"
+              visible="{= ${view>NodeType} !== 'DESC' }"
+              wrapping="true"
+              width="100%"
+              design="{= (${view>Label} === 'Net Landed Cost (Rs)' || ${view>Label} === 'Commercial Rating') ? 'Bold' : 'Standard' }"/>
+            <HBox
+              visible="{= ${view>NodeType} === 'DESC' &amp;&amp; !!${view>MaterialLongText} }"
+              alignItems="Center"
+              class="qcsLongTextBox">
+              <core:Icon
+                xmlns:core="sap.ui.core"
+                src="sap-icon://detail-view"
+                color="#0070f2"
+                class="sapUiTinyMarginEnd qcsLongTextIcon"
+                tooltip=""/>
+              <Text text="Long Text" class="qcsDescText" wrapping="false"/>
+            </HBox>
+            <Button
+              icon="sap-icon://delete"
+              type="Transparent"
+              visible="{= (${view>NodeType} === 'PR' || ${view>NodeType} === 'ITEM') &amp;&amp; !${view>/isApprovedMode} &amp;&amp; !${view>FromBackend} }"
+              press="onDeleteRow"/>
+          </HBox>
+        </table:template>
+      </table:Column>
+
+      <!-- Item Code -->
+      <table:Column width="100px">
+        <Label text="Item Code" textAlign="Center" width="100%"/>
+        <table:template>
+          <Text
+            text="{view>Material}"
+            visible="{= ${view>NodeType} === 'ITEM' }"/>
+        </table:template>
+      </table:Column>
+
+      <!-- QTY -->
+      <table:Column width="80px" hAlign="End">
+        <Label text="Remaining PR Qty" textAlign="Center" width="100%"/>
+        <table:template>
+          <HBox visible="{= ${view>NodeType} === 'ITEM' }" justifyContent="End" width="100%">
+            <Text
+              visible="{= !${view>IsManual} || (${view>Qty} !== '0' &amp;&amp; ${view>Qty} !== '') }"
+              text="{view>Qty}"
+              textAlign="End"/>
+            <Input
+              visible="{= ${view>IsManual} &amp;&amp; (${view>Qty} === '0' || ${view>Qty} === '') }"
+              value="{view>Qty}"
+              type="Number"
+              textAlign="End"
+              width="100%"
+              change="onManualQtyChange"/>
+          </HBox>
+        </table:template>
+      </table:Column>
+
+      <!-- UOM -->
+      <table:Column width="60px">
+        <Label text="UOM" textAlign="Center" width="100%"/>
+        <table:template>
+          <Text
+            visible="{= ${view>NodeType} === 'ITEM' }"
+            text="{view>UOM}"/>
+        </table:template>
+      </table:Column>
+
+      <!-- Plant -->
+      <table:Column width="70px">
+        <Label text="Plant" textAlign="Center" width="100%"/>
+        <table:template>
+          <HBox visible="{= ${view>NodeType} === 'ITEM' }" width="100%">
+            <Text
+              text="{view>Plant}"
+              visible="{= !(${view>/editable} &amp;&amp; ${view>/prApiEmpty}) }"
+              width="100%"/>
+            <Input
+              value="{view>Plant}"
+              visible="{= ${view>/editable} &amp;&amp; ${view>/prApiEmpty} }"
+              width="100%"/>
+          </HBox>
+        </table:template>
+      </table:Column>
+
+      <!-- Purchase Org (visible only when prApiEmpty and editable) -->
+      <table:Column width="100px" visible="{= ${view>/editable} &amp;&amp; ${view>/prApiEmpty} }">
+        <Label text="Purchase Org" textAlign="Center" width="100%"/>
+        <table:template>
+          <Input
+            value="{view>PurchaseOrg}"
+            visible="{= ${view>NodeType} === 'ITEM' }"
+            width="100%"/>
+        </table:template>
+      </table:Column>
+
+      <!-- Purchase Group (visible only when prApiEmpty and editable) -->
+      <table:Column width="100px" visible="{= ${view>/editable} &amp;&amp; ${view>/prApiEmpty} }">
+        <Label text="Purchase Group" textAlign="Center" width="100%"/>
+        <table:template>
+          <Input
+            value="{view>PurchaseGroup}"
+            visible="{= ${view>NodeType} === 'ITEM' }"
+            width="100%"/>
+        </table:template>
+      </table:Column>
+
+      <!-- Material Group -->
+      <table:Column width="120px">
+        <Label text="Material Group" textAlign="Center" width="100%"/>
+        <table:template>
+          <HBox visible="{= ${view>NodeType} === 'ITEM' }" width="100%">
+            <Text
+              visible="{= !${view>IsManual} }"
+              text="{view>MaterialGroup}"
+              width="100%"/>
+            <Input
+              visible="{= ${view>IsManual} }"
+              value="{view>MaterialGroup}"
+              showValueHelp="true"
+              valueHelpOnly="{= ${view>MaterialGroup} === '' || ${view>MaterialGroup} === undefined }"
+              enabled="{= ${view>MaterialGroup} === '' || ${view>MaterialGroup} === undefined }"
+              width="100%"
+              valueHelpRequest="onManualMatGrpVH"/>
+          </HBox>
+        </table:template>
+      </table:Column>
+
+      <!-- Remaining QTY -->
+      <table:Column width="80px" hAlign="End">
+        <Label text="Remaining Qty for PO Creation" textAlign="Center" width="100%"/>
+        <table:template>
+          <Text
+            visible="{= ${view>NodeType} === 'ITEM' }"
+            text="{= ${view>RemainingQty} !== undefined ? ${view>RemainingQty} : ${view>Qty} }"
+            textAlign="End"/>
+        </table:template>
+      </table:Column>
+
+      <!-- Unit LPP -->
+      <table:Column width="80px" hAlign="End">
+        <Label text="Unit LPP" textAlign="Center" width="100%"/>
+        <table:template>
+          <HBox visible="{= ${view>NodeType} === 'ITEM' }" justifyContent="End" width="100%">
+            <Text
+              visible="{= !${view>IsManual} || parseFloat(${view>UnitLpp}) > 0 }"
+              text="{view>UnitLpp}"
+              textAlign="End"/>
+            <Input
+              visible="{= ${view>IsManual} &amp;&amp; !(parseFloat(${view>UnitLpp}) > 0) }"
+              value="{view>UnitLpp}"
+              type="Number"
+              textAlign="End"
+              width="100%"
+              change="onManualLppChange"/>
+          </HBox>
+        </table:template>
+      </table:Column>
+
+      <!-- 🔹 Vendor columns are still added dynamically in controller -->
+
+    </table:TreeTable>
+  </content>
+
+  <footer>
+    <OverflowToolbar>
+      <ToolbarSpacer/>
+      <Button text="Save as draft" type="Emphasized" press="onSave" visible="{= !${view>/isApprovedMode} &amp;&amp; !${view>/isApprovalPending} }"/>
+      <Button text="Submit for approval" type="Success" press="onPostVendorPRDetails" enabled="{view>/submitEnabled}" visible="{= !${view>/isApprovedMode} &amp;&amp; !${view>/isApprovalPending} }"/>
+      <Button text="Summary" type="Default" icon="sap-icon://detail-view" press="onOpenSummary" visible="{= ${view>/isApprovedMode} || ${view>/isApprovalPending} }"/>
+      <!-- <Link text="QCS Form" press="onOpenQCSForm"  class="sapUiSmallMarginBegin"/> -->
+      <Button
+      text="Download Form"
+      type="Default"
+      icon="sap-icon://download"
+      press="onDownloadQCSForm"
+      enabled="{= ${view>/submitEnabled} || ${view>/isApprovedMode} || ${view>/isApprovalPending} || ${view>/isDocEditMode} || ${view>/hasTableData} }"/>
+    </OverflowToolbar>
+  </footer>
+</Page>
+</mvc:View>
+ 

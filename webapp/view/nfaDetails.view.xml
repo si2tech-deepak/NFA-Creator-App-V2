@@ -1,0 +1,289 @@
+<mvc:View
+    controllerName="com.df.nfa.creator_v2.controller.nfaDetails"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:m="sap.m"
+    xmlns:f="sap.f"
+    xmlns:uxap="sap.uxap"
+    xmlns:form="sap.ui.layout.form"
+    xmlns:layout="sap.ui.layout"
+    xmlns:core="sap.ui.core">
+
+    <f:DynamicPage id="nfaDetailsPage" headerExpanded="true">
+        <f:title>
+            <f:DynamicPageTitle>
+                <f:heading>
+                    <m:Title text="NFA Details - {viewModel>/header/PoNo}"/>
+                </f:heading>
+                <f:actions>
+                    <!-- VIEW MODE buttons -->
+                    <m:Button text="Edit" type="Emphasized" icon="sap-icon://edit"
+                        press="onEdit" visible="{= !${viewModel>/isEditMode} &amp;&amp; ${viewModel>/editVisible}}"/>
+                    <m:MenuButton text="Create Document" type="Default" icon="sap-icon://create"
+                        buttonMode="Split" defaultAction="onCreateDocument"
+                        visible="{= !${viewModel>/isEditMode}}">
+                        <m:menu>
+                            <m:Menu itemSelected="onDocumentTypeSelect">
+                                <m:MenuItem text="Create Purchase Order" key="PO"/>
+                                <m:MenuItem text="Create Contract" key="CONTRACT"/>
+                                <m:MenuItem text="Create Scheduling Agreement" key="SA"/>
+                            </m:Menu>
+                        </m:menu>
+                    </m:MenuButton>
+
+                    <!-- EDIT MODE buttons -->
+                    <m:Button text="Save" type="Emphasized" icon="sap-icon://save"
+                        press="onSave" visible="{viewModel>/isEditMode}"/>
+                    <m:Button text="Cancel" type="Default" icon="sap-icon://cancel"
+                        press="onCancel" visible="{viewModel>/isEditMode}"/>
+
+                    <m:Button icon="sap-icon://nav-back" text="Back" press="onBack"/>
+                </f:actions>
+            </f:DynamicPageTitle>
+        </f:title>
+
+        <f:header>
+            <f:DynamicPageHeader>
+                <f:content>
+                    <layout:Grid defaultSpan="XL3 L3 M6 S12" hSpacing="1" vSpacing="0">
+                        <m:VBox>
+                            <m:Label text="NFA Reference Number"/>
+                            <m:Text text="{viewModel>/header/PoNo}"/>
+                        </m:VBox>
+                        <m:VBox>
+                            <m:Label text="Ariba Document Number"/>
+                            <m:Text text="{viewModel>/header/AribaDocNo}"/>
+                        </m:VBox>
+                        <m:VBox>
+                            <m:Label text="NFA Type"/>
+                            <m:Text text="{viewModel>/header/NfaTypeDesc}"/>
+                        </m:VBox>
+                        <m:VBox>
+                            <m:Label text="Status"/>
+                            <m:ObjectStatus text="{viewModel>/header/Status}" state="{viewModel>/header/StatusState}"/>
+                        </m:VBox>
+                    </layout:Grid>
+                </f:content>
+            </f:DynamicPageHeader>
+        </f:header>
+
+        <f:content>
+            <m:IconTabBar id="nfaDetailsIconTab" expanded="true">
+                <m:items>
+
+                    <!-- ===== NFA INFORMATION TAB ===== -->
+                    <m:IconTabFilter icon="sap-icon://document-text" text="NFA Information" key="nfaInfo">
+                        <uxap:ObjectPageLayout showFooter="false">
+                            <uxap:sections>
+
+                                <uxap:ObjectPageSection title="Basic Information">
+                                    <uxap:subSections>
+                                        <uxap:ObjectPageSubSection>
+                                            <form:SimpleForm editable="{viewModel>/isEditMode}" layout="ResponsiveGridLayout" columnsL="2" columnsM="2">
+                                                <form:content>
+                                                    <m:Label text="NFA Title"/>
+                                                    <m:Input value="{viewModel>/header/NfaTitle}" editable="{viewModel>/isEditMode}"/>
+                                                    <m:Label text="Remarks"/>
+                                                    <m:Input value="{viewModel>/header/Remarks}" editable="{viewModel>/isEditMode}"/>
+                                                    <m:Label text="BI Date"/>
+                                                    <m:DatePicker value="{viewModel>/header/BiDate}" editable="{viewModel>/isEditMode}" displayFormat="dd MMM yyyy"/>
+                                                    <m:Label text="Purchase Org"/>
+                                                    <m:Input value="{viewModel>/header/PurchaseOrgDesc}" editable="false"/>
+                                                    <m:Label text="Purchase Group"/>
+                                                    <m:Input value="{viewModel>/header/PurchaseGroupDesc}" editable="false"/>
+                                                    <m:Label text="Company Code"/>
+                                                    <m:Input value="{viewModel>/header/CompanyDescription}" editable="false"/>
+                                                    <m:Label text="PR Budget"/>
+                                                    <m:Input value="{viewModel>/header/PrBudget}" editable="{viewModel>/isEditMode}" liveChange="onPrBudgetChange"/>
+                                                    <m:Label text="WBS Budget"/>
+                                                    <m:Input value="{viewModel>/header/WbsBudget}" editable="false"/>
+                                                    <m:Label text="Long Text"/>
+                                                    <m:TextArea value="{viewModel>/header/Description}" editable="{viewModel>/isEditMode}" rows="3" width="100%"/>
+                                                    <m:Label text="Vendor Category"/>
+                                                    <m:Input value="{viewModel>/header/VendorCategory}" editable="{viewModel>/isEditMode}"/>
+                                                </form:content>
+                                            </form:SimpleForm>
+                                        </uxap:ObjectPageSubSection>
+                                    </uxap:subSections>
+                                </uxap:ObjectPageSection>
+
+                                <uxap:ObjectPageSection title="Other Terms">
+                                    <uxap:subSections>
+                                        <uxap:ObjectPageSubSection>
+                                            <form:SimpleForm editable="{viewModel>/isEditMode}" layout="ResponsiveGridLayout" columnsL="2" columnsM="2">
+                                                <form:content>
+                                                    <m:Label text="LD Clause"/>
+                                                    <m:Input value="{viewModel>/header/LdClause}" editable="{viewModel>/isEditMode}"/>
+                                                    <m:Label text="Advance BG"/>
+                                                    <m:Input value="{viewModel>/header/AdvanceBg}" editable="{viewModel>/isEditMode}"/>
+                                                    <m:Label text="Advance BG Amount"/>
+                                                    <m:Input value="{viewModel>/header/AdavanceBgAmt}" editable="{viewModel>/isEditMode}" type="Number"/>
+                                                    <m:Label text="Performance BG"/>
+                                                    <m:Input value="{viewModel>/header/PerformanceBg}" editable="{viewModel>/isEditMode}"/>
+                                                    <m:Label text="Performance BG Amount"/>
+                                                    <m:Input value="{viewModel>/header/PerformanceBpAmt}" editable="{viewModel>/isEditMode}" type="Number"/>
+                                                </form:content>
+                                            </form:SimpleForm>
+                                        </uxap:ObjectPageSubSection>
+                                    </uxap:subSections>
+                                </uxap:ObjectPageSection>
+
+                                <uxap:ObjectPageSection title="Justification For Price">
+                                    <uxap:subSections>
+                                        <uxap:ObjectPageSubSection>
+                                            <m:VBox>
+                                                <m:CheckBox text="Lowest Basis"
+                                                    selected="{= ${viewModel>/header/LowestBasis} === 'X' }"
+                                                    editable="{viewModel>/isEditMode}" select="onCheckboxEdit"/>
+                                                <m:CheckBox text="Technically acceptable lowest basis"
+                                                    selected="{= ${viewModel>/header/TechAccepLowBasis} === 'X' }"
+                                                    editable="{viewModel>/isEditMode}" select="onCheckboxEdit"/>
+                                                <m:CheckBox text="Proprietory basis"
+                                                    selected="{= ${viewModel>/header/ProprietaryBasis} === 'X' }"
+                                                    editable="{viewModel>/isEditMode}" select="onCheckboxEdit"/>
+                                                <m:CheckBox text="Single Tender basis"
+                                                    selected="{= ${viewModel>/header/SingleTenderBasis} === 'X' }"
+                                                    editable="{viewModel>/isEditMode}" select="onCheckboxEdit"/>
+                                                <m:CheckBox text="Repeat order basis"
+                                                    selected="{= ${viewModel>/header/RepeatOrderBasis} === 'X' }"
+                                                    editable="{viewModel>/isEditMode}" select="onCheckboxEdit"/>
+                                                <m:CheckBox text="Rate Contract"
+                                                    selected="{= ${viewModel>/header/RateContract} === 'X' }"
+                                                    editable="{viewModel>/isEditMode}" select="onCheckboxEdit"/>
+                                                <m:Label text="Justification Remarks" class="sapUiSmallMarginTop"/>
+                                                <m:TextArea value="{viewModel>/header/JustificationRemarks}"
+                                                    editable="{viewModel>/isEditMode}" rows="2" width="100%"/>
+                                            </m:VBox>
+                                        </uxap:ObjectPageSubSection>
+                                    </uxap:subSections>
+                                </uxap:ObjectPageSection>
+
+                                <uxap:ObjectPageSection title="Special Remarks">
+                                    <uxap:subSections>
+                                        <uxap:ObjectPageSubSection>
+                                            <form:SimpleForm editable="{viewModel>/isEditMode}" layout="ResponsiveGridLayout" columnsL="2" columnsM="2">
+                                                <form:content>
+                                                    <m:Label text="Scope of Work"/>
+                                                    <m:TextArea value="{viewModel>/header/ScopeOfWork}" editable="{viewModel>/isEditMode}" rows="2" width="100%"/>
+                                                    <m:Label text="Additional Information"/>
+                                                    <m:TextArea value="{viewModel>/header/AdditionalInfo}" editable="{viewModel>/isEditMode}" rows="2" width="100%"/>
+                                                    <m:Label text="Negotiation Strategy"/>
+                                                    <m:TextArea value="{viewModel>/header/NegotiationStrategy}" editable="{viewModel>/isEditMode}" rows="2" width="100%"/>
+                                                </form:content>
+                                            </form:SimpleForm>
+                                        </uxap:ObjectPageSubSection>
+                                    </uxap:subSections>
+                                </uxap:ObjectPageSection>
+
+                                <uxap:ObjectPageSection title="Vendors Quoted">
+                                    <uxap:subSections>
+                                        <uxap:ObjectPageSubSection>
+                                            <m:Table items="{viewModel>/vendors}" fixedLayout="false">
+                                                <m:columns>
+                                                    <m:Column width="4%"><m:Text text="Sl."/></m:Column>
+                                                    <m:Column><m:Text text="Vendor No"/></m:Column>
+                                                    <m:Column><m:Text text="Awarded Vendor"/></m:Column>
+                                                    <m:Column><m:Text text="Plant"/></m:Column>
+                                                    <m:Column><m:Text text="Initial Price"/></m:Column>
+                                                    <m:Column><m:Text text="Negotiated Price"/></m:Column>
+                                                    <m:Column><m:Text text="LPP"/></m:Column>
+                                                    <m:Column><m:Text text="TA"/></m:Column>
+                                                    <m:Column><m:Text text="Vendor QA"/></m:Column>
+                                                    <m:Column><m:Text text="GST Credit"/></m:Column>
+                                                    <m:Column><m:Text text="Freight"/></m:Column>
+                                                    <m:Column><m:Text text="GST %"/></m:Column>
+                                                    <m:Column><m:Text text="GST Amt"/></m:Column>
+                                                    <m:Column><m:Text text="Insurance"/></m:Column>
+                                                    <m:Column><m:Text text="Basic Total Amt"/></m:Column>
+                                                    <m:Column><m:Text text="Net Landed Cost"/></m:Column>
+                                                    <m:Column><m:Text text="Commercial Rating"/></m:Column>
+                                                    <m:Column><m:Text text="Payment Terms"/></m:Column>
+                                                    <m:Column><m:Text text="Payment Terms Desc"/></m:Column>
+                                                </m:columns>
+                                                <m:items>
+                                                    <m:ColumnListItem>
+                                                        <m:cells>
+                                                            <m:Text text="{viewModel>slNo}"/>
+                                                            <m:Text text="{viewModel>vendorNo}"/>
+                                                            <m:Input value="{viewModel>vendorName}" editable="{/viewModel/isEditMode}"/>
+                                                            <m:Input value="{viewModel>plant}" editable="{/viewModel/isEditMode}"/>
+                                                            <m:Input value="{viewModel>initialPrice}" editable="{/viewModel/isEditMode}"/>
+                                                            <m:Input value="{viewModel>negotiatedAmount}" editable="{/viewModel/isEditMode}"/>
+                                                            <m:Input value="{viewModel>lpp}" editable="{/viewModel/isEditMode}"/>
+                                                            <m:Input value="{viewModel>technicalAcceptability}" editable="{/viewModel/isEditMode}"/>
+                                                            <m:Input value="{viewModel>vendorQualification}" editable="{/viewModel/isEditMode}"/>
+                                                            <m:Input value="{viewModel>gstCredit}" editable="{/viewModel/isEditMode}"/>
+                                                            <m:Input value="{viewModel>freight}" editable="{/viewModel/isEditMode}"/>
+                                                            <m:Input value="{viewModel>gstPercentage}" editable="{/viewModel/isEditMode}"/>
+                                                            <m:Input value="{viewModel>gstAmount}" editable="{/viewModel/isEditMode}"/>
+                                                            <m:Input value="{viewModel>insurance}" editable="{/viewModel/isEditMode}"/>
+                                                            <m:Text text="{path: 'viewModel>basicTotalAmt', formatter: '.formatINR'}"/>
+                                                            <m:Text text="{path: 'viewModel>netLandedCost', formatter: '.formatINR'}"/>
+                                                            <m:Input value="{viewModel>commercialRating}" editable="{/viewModel/isEditMode}"/>
+                                                            <m:Text text="{viewModel>PaymentTerms}"/>
+                                                            <m:Text text="{viewModel>PaymentTermsDesc}"/>
+                                                        </m:cells>
+                                                    </m:ColumnListItem>
+                                                </m:items>
+                                            </m:Table>
+                                        </uxap:ObjectPageSubSection>
+                                    </uxap:subSections>
+                                </uxap:ObjectPageSection>
+
+                            </uxap:sections>
+                        </uxap:ObjectPageLayout>
+                    </m:IconTabFilter>
+
+                    <!-- ===== QCS TAB ===== -->
+                    <m:IconTabFilter icon="sap-icon://quality-issue" text="QCS Data" key="qcsData">
+                        <m:VBox class="sapUiSmallMargin">
+                            <m:Table items="{viewModel>/vendorPR}" fixedLayout="false">
+                                <m:columns>
+                                    <m:Column width="4%"><m:Text text="Sl."/></m:Column>
+                                    <m:Column><m:Text text="Vendor No"/></m:Column>
+                                    <m:Column><m:Text text="PR No"/></m:Column>
+                                    <m:Column><m:Text text="PR Item"/></m:Column>
+                                    <m:Column><m:Text text="Material"/></m:Column>
+                                    <m:Column><m:Text text="Description"/></m:Column>
+                                    <m:Column><m:Text text="Qty"/></m:Column>
+                                    <m:Column><m:Text text="UOM"/></m:Column>
+                                    <m:Column><m:Text text="Plant"/></m:Column>
+                                    <m:Column><m:Text text="Remaining Qty"/></m:Column>
+                                    <m:Column><m:Text text="Split PO Qty"/></m:Column>
+                                    <m:Column><m:Text text="Finalized Price"/></m:Column>
+                                    <m:Column><m:Text text="Freight"/></m:Column>
+                                    <m:Column><m:Text text="GST %"/></m:Column>
+                                    <m:Column><m:Text text="GST Amount"/></m:Column>
+                                    <m:Column><m:Text text="Insurance"/></m:Column>
+                                </m:columns>
+                                <m:items>
+                                    <m:ColumnListItem>
+                                        <m:cells>
+                                            <m:Text text="{viewModel>slNo}"/>
+                                            <m:Text text="{viewModel>vendorNo}"/>
+                                            <m:Text text="{viewModel>prNo}"/>
+                                            <m:Text text="{viewModel>prItem}"/>
+                                            <m:Text text="{viewModel>material}"/>
+                                            <m:Text text="{viewModel>materialDescription}"/>
+                                            <m:Text text="{viewModel>qty}"/>
+                                            <m:Text text="{viewModel>uom}"/>
+                                            <m:Text text="{viewModel>plant}"/>
+                                            <m:Text text="{viewModel>remainingQty}"/>
+                                            <m:Text text="{viewModel>splitPoQty}"/>
+                                            <m:Text text="{viewModel>finalizedLinePrice}"/>
+                                            <m:Text text="{viewModel>freight}"/>
+                                            <m:Text text="{viewModel>gstPercentage}"/>
+                                            <m:Text text="{viewModel>gstAmount}"/>
+                                            <m:Text text="{viewModel>insurance}"/>
+                                        </m:cells>
+                                    </m:ColumnListItem>
+                                </m:items>
+                            </m:Table>
+                        </m:VBox>
+                    </m:IconTabFilter>
+
+                </m:items>
+            </m:IconTabBar>
+        </f:content>
+    </f:DynamicPage>
+
+</mvc:View>

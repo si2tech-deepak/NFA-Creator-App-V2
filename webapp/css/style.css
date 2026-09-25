@@ -1,0 +1,157 @@
+.sapUiTableColHdrCnt .sapMLabel {
+    width: 100%;
+    text-align: center;
+    white-space: normal;
+    word-break: break-word;
+    overflow: visible;
+    line-height: 1.3;
+}
+
+.sapUiTableCol .sapUiTableColCell {
+    height: auto !important;
+    white-space: normal !important;
+}
+
+/* nfaCreator sap.m.Table header */
+.nfaCreatorTable .sapMListTblHeaderCell {
+    background-color: #1e3d8d !important;
+}
+
+.nfaCreatorTable .sapMListTblHeaderCell .sapMLabel,
+.nfaCreatorTable .sapMListTblHeaderCell .sapMText {
+    color: #ffffff !important;
+    font-weight: bold;
+}
+
+/* Approved table header - same style without shared class */
+#approvedTable .sapMListTblHeaderCell {
+    background-color: #1e3d8d !important;
+}
+
+#approvedTable .sapMListTblHeaderCell .sapMLabel,
+#approvedTable .sapMListTblHeaderCell .sapMText {
+    color: #ffffff !important;
+    font-weight: bold;
+}
+
+/* Cover selection column header cell for approved and documents tables */
+#approvedTable thead tr th,
+#approvedTable .sapMListTblHeader td,
+#documentsTable thead tr th,
+#documentsTable .sapMListTblHeader td {
+    background-color: #1e3d8d !important;
+}
+
+#documentsTable .sapMListTblHeaderCell {
+    background-color: #1e3d8d !important;
+}
+
+#documentsTable .sapMListTblHeaderCell .sapMLabel,
+#documentsTable .sapMListTblHeaderCell .sapMText {
+    color: #ffffff !important;
+    font-weight: bold;
+}
+
+/* QCS TreeTable header */
+.qcsTreeTable .sapUiTableColHdrCnt {
+    background-color: #1e3d8d !important;
+}
+
+.qcsTreeTable .sapUiTableCol {
+    background-color: #1e3d8d !important;
+    border-right: 1px solid #ffffff;
+}
+
+.qcsTreeTable .sapUiTableCol .sapMLabel {
+    color: #ffffff !important;
+    font-weight: bold;
+    text-align: center;
+    width: 100%;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.sapMTextBold {
+    font-weight: bold;
+}
+
+/* Bold font for Net Landed Cost and Commercial Rating row labels and values */
+.qcsNetLandedBold {
+    font-weight: bold !important;
+}
+
+/* Text color utility classes */
+.nfaTextWarning {
+    color: #e9730c;
+}
+
+.nfaTextHighlighted {
+    color: #0070f2;
+    font-weight: bold;
+}
+
+.nfaTextMuted {
+    color: #6a6d70;
+}
+
+.nfaCharCount {
+    font-size: 11px;
+    color: #9e9e9e;
+}
+
+/* TextArea char counter overlay */
+.nfaCharCountWrapper {
+    width: 100%;
+}
+
+.nfaCharCountWrapper .nfaCharCounter {
+    display: block;
+    text-align: right;
+    font-size: 11px;
+    color: #888888;
+    pointer-events: none;
+}
+
+.nfaCharCountWrapper .nfaCharCounter.nfaCharCounterExceeded {
+    color: #bb0000;
+    font-weight: bold;
+}
+
+/* DESC row long text — single truncated line, full text on hover via popover */
+.qcsDescText {
+    cursor: pointer;
+    color: #0070f2;
+    font-style: italic;
+    font-size: 12px;
+}
+
+.qcsLongTextBox {
+    cursor: pointer;
+}
+
+.qcsLongTextIcon {
+    font-size: 14px;
+    cursor: pointer;
+}
+
+/* Approval History Table */
+.approvalHistoryScroll {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.approvalHistoryTable .sapMListTblHeaderCell {
+    padding: 0.5rem 0.75rem;
+    white-space: nowrap;
+}
+
+.approvalHistoryTable .sapMListTblCell {
+    padding: 0.5rem 0.75rem;
+    vertical-align: top;
+}
+
+.approvalHistoryTable .sapMText {
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+

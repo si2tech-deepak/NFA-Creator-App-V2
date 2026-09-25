@@ -1,0 +1,7 @@
+<mvc:View
+    controllerName="com.df.nfa.creator_v2.controller.App"
+    displayBlock="true"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m">
+    <App id="app" height="100%"/>
+</mvc:View>

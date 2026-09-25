@@ -1,0 +1,2 @@
+# Keep files byte-for-byte as they are on the ABAP server (CRLF). No EOL conversion.
+* -text

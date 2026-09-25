@@ -1,0 +1,266 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:layout="sap.ui.layout"
+    xmlns:form="sap.ui.layout.form"
+    xmlns:grid="sap.ui.table"
+    xmlns:treeTable="sap.ui.table">
+
+    <Dialog
+        id="versionHistoryDialog"
+        title="Version History"
+        contentWidth="1000px"
+        resizable="true"
+        draggable="true"
+        verticalScrolling="true">
+
+        <content>
+            <VBox class="sapUiSmallMargin">
+
+                <!-- Version Selector -->
+                <HBox alignItems="Center" class="sapUiSmallMarginBottom">
+                    <Label text="Select Version:" class="sapUiSmallMarginEnd"/>
+                    <ComboBox
+                        id="versionHistoryCombo"
+                        width="14rem"
+                        placeholder="Select a version"
+                        items="{path: 'viewModel>/versionHistory'}"
+                        selectionChange="onVersionDialogComboChange">
+                        <core:Item key="{viewModel>Version}" text="{viewModel>Version}"/>
+                    </ComboBox>
+                </HBox>
+
+                <!-- All NFA fields - visible only after version is selected -->
+                <VBox visible="{= !!${viewModel>/versionView/NfaRefNo} }">
+
+                    <!-- Header Info -->
+                    <Title text="Header Information" level="H5" class="sapUiSmallMarginBottom"/>
+                    <layout:Grid defaultSpan="XL3 L3 M6 S12" hSpacing="2" vSpacing="1">
+                        <VBox><Label text="NFA Ref No"/><Input value="{viewModel>/versionView/NfaRefNo}" editable="false"/></VBox>
+                        <VBox><Label text="Version"/><Input value="{viewModel>/versionView/Version}" editable="false"/></VBox>
+                        <VBox><Label text="Status"/><Input value="{viewModel>/versionView/Status}" editable="false"/></VBox>
+                        <VBox><Label text="NFA Title"/><Input value="{viewModel>/versionView/NfaTitle}" editable="false"/></VBox>
+                        <VBox><Label text="Ariba Doc No"/><Input value="{viewModel>/versionView/AribaDocNo}" editable="false"/></VBox>
+                        <VBox><Label text="NFA Type"/><Input value="{viewModel>/versionView/NfaTypeDesc}" editable="false"/></VBox>
+                    </layout:Grid>
+
+                    <!-- Basic Information -->
+                    <Title text="Basic Information" level="H5" class="sapUiSmallMarginTop sapUiSmallMarginBottom"/>
+                    <layout:Grid defaultSpan="XL3 L3 M6 S12" hSpacing="2" vSpacing="1">
+                        <VBox><Label text="Date"/><Input value="{viewModel>/versionView/BiDate}" editable="false"/></VBox>
+                        <VBox><Label text="Company Code"/><Input value="{viewModel>/versionView/CompanyDescription}" editable="false"/></VBox>
+                        <VBox><Label text="Purchase Org"/><Input value="{viewModel>/versionView/PurchaseOrgDesc}" editable="false"/></VBox>
+                        <VBox><Label text="Plant"/><Input value="{viewModel>/versionView/PlantDesc}" editable="false"/></VBox>
+                        <VBox><Label text="Purchase Group"/><Input value="{viewModel>/versionView/PurchaseGroupDesc}" editable="false"/></VBox>
+                        <VBox><Label text="PR Budget"/><Input value="{viewModel>/versionView/PrBudget}" editable="false"/></VBox>
+                        <VBox><Label text="WBS Budget"/><Input value="{viewModel>/versionView/WbsBudget}" editable="false"/></VBox>
+                        <VBox><Label text="Baseline Spend"/><Input value="{viewModel>/versionView/BaselineSpend}" editable="false"/></VBox>
+                        <VBox><Label text="Currency"/><Input value="{viewModel>/versionView/CurrencyDesc}" editable="false"/></VBox>
+                        <VBox><Label text="Incoterms"/><Input value="{viewModel>/versionView/IncotermDesc}" editable="false"/></VBox>
+                        <VBox><Label text="TBE Date"/><Input value="{viewModel>/versionView/TbdDate}" editable="false"/></VBox>
+                        <VBox><Label text="Created By"/><Input value="{viewModel>/versionView/CreatedBy}" editable="false"/></VBox>
+                        <VBox>
+                            <layoutData><layout:GridData span="XL12 L12 M12 S12"/></layoutData>
+                            <Label text="Long Text"/>
+                            <TextArea value="{viewModel>/versionView/Description}" editable="false" rows="3" width="100%"/>
+                        </VBox>
+                    </layout:Grid>
+
+                    <!-- Terms and Conditions -->
+                    <Title text="Terms and Conditions" level="H5" class="sapUiSmallMarginTop sapUiSmallMarginBottom"/>
+                    <layout:Grid defaultSpan="XL3 L3 M6 S12" hSpacing="2" vSpacing="1">
+                        <VBox><Label text="LD Clause"/><Input value="{viewModel>/versionView/LdClause}" editable="false"/></VBox>
+                        <VBox><Label text="LD Clause %"/><Input value="{viewModel>/versionView/LdClauseAmt}" editable="false"/></VBox>
+                        <VBox><Label text="Advance B.G."/><Input value="{viewModel>/versionView/AdvanceBg}" editable="false"/></VBox>
+                        <VBox><Label text="Advance B.G. %"/><Input value="{viewModel>/versionView/AdavanceBgAmt}" editable="false"/></VBox>
+                        <VBox><Label text="Performance B.G."/><Input value="{viewModel>/versionView/PerformanceBg}" editable="false"/></VBox>
+                        <VBox><Label text="Performance B.G. %"/><Input value="{viewModel>/versionView/PerformanceBpAmt}" editable="false"/></VBox>
+                        <VBox><Label text="CPBG"/><Input value="{viewModel>/versionView/Cpbg}" editable="false"/></VBox>
+                        <VBox><Label text="CPBG %"/><Input value="{viewModel>/versionView/CpbgAmt}" editable="false"/></VBox>
+                        <VBox>
+                            <layoutData><layout:GridData span="XL12 L12 M12 S12"/></layoutData>
+                            <Label text="PO Header Text"/>
+                            <TextArea value="{viewModel>/versionView/OtherTerms}" editable="false" rows="3" width="100%"/>
+                        </VBox>
+                    </layout:Grid>
+
+                    <!-- Justification For Price -->
+                    <Title text="Justification For Price" level="H5" class="sapUiSmallMarginTop sapUiSmallMarginBottom"/>
+                    <layout:Grid defaultSpan="XL4 L4 M6 S12" hSpacing="2" vSpacing="0">
+                        <CheckBox text="Lowest Basis"                          selected="{= ${viewModel>/versionView/LowestBasis} === 'X' }"              enabled="false"/>
+                        <CheckBox text="Technically acceptable lowest basis"   selected="{= ${viewModel>/versionView/TechAccepLowBasis} === 'X' }"        enabled="false"/>
+                        <CheckBox text="Proprietory basis"                     selected="{= ${viewModel>/versionView/ProprietaryBasis} === 'X' }"         enabled="false"/>
+                        <CheckBox text="Single Vendor basis"                   selected="{= ${viewModel>/versionView/SingleTenderBasis} === 'X' }"        enabled="false"/>
+                        <CheckBox text="Repeat order basis"                    selected="{= ${viewModel>/versionView/RepeatOrderBasis} === 'X' }"         enabled="false"/>
+                        <CheckBox text="Rate Contract"                         selected="{= ${viewModel>/versionView/RateContract} === 'X' }"             enabled="false"/>
+                        <CheckBox text="Regularization"                        selected="{= ${viewModel>/versionView/Regularization} === 'X' }"           enabled="false"/>
+                        <CheckBox text="Final Settlement"                      selected="{= ${viewModel>/versionView/FinalSettlement} === 'X' }"          enabled="false"/>
+                        <CheckBox text="Project team Recommendation basis"     selected="{= ${viewModel>/versionView/ProjectTeamRecommendation} === 'X' }" enabled="false"/>
+                    </layout:Grid>
+                    <VBox class="sapUiSmallMarginTop">
+                        <Label text="Remarks / Comments"/>
+                        <TextArea value="{viewModel>/versionView/JustificationRemarks}" editable="false" rows="3" width="100%"/>
+                    </VBox>
+
+                    <!-- Special Remarks -->
+                    <Title text="Special Remarks" level="H5" class="sapUiSmallMarginTop sapUiSmallMarginBottom"/>
+                    <VBox class="sapUiSmallMarginBottom">
+                        <Label text="Scope of Work"/>
+                        <TextArea value="{viewModel>/versionView/ScopeOfWork}" editable="false" rows="3" width="100%"/>
+                    </VBox>
+                    <VBox class="sapUiSmallMarginBottom">
+                        <Label text="Additional Information"/>
+                        <TextArea value="{viewModel>/versionView/AdditionalInfo}" editable="false" rows="3" width="100%"/>
+                    </VBox>
+                    <VBox class="sapUiSmallMarginBottom">
+                        <Label text="Negotiation Strategy"/>
+                        <TextArea value="{viewModel>/versionView/NegotiationStrategy}" editable="false" rows="3" width="100%"/>
+                    </VBox>
+
+                    <!-- Vendors Quoted - same grid table as NFA create page -->
+                    <Title text="Vendors Quoted" level="H5" class="sapUiSmallMarginTop sapUiSmallMarginBottom"/>
+                    <ScrollContainer horizontal="true" vertical="false" width="100%">
+                        <grid:Table
+                            rows="{viewModel>/versionView/vendors}"
+                            selectionMode="None"
+                            visibleRowCountMode="Auto"
+                            minAutoRowCount="3"
+                            alternateRowColors="true"
+                            fixedColumnCount="2"
+                            noData="No vendors"
+                            width="100%">
+                            <grid:columns>
+                                <grid:Column width="5rem" hAlign="Center">
+                                    <grid:label><Label text="Sl. No." textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                    <grid:template><Text text="{viewModel>slNo}"/></grid:template>
+                                </grid:Column>
+                                <grid:Column width="14rem" hAlign="Center">
+                                    <grid:label><Label text="Vendor" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                    <grid:template><Text text="{viewModel>vendorName}"/></grid:template>
+                                </grid:Column>
+                                <grid:Column width="8rem" hAlign="Center">
+                                    <grid:label><Label text="Tech. Acceptability" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                    <grid:template><Text text="{viewModel>technicalAcceptability}"/></grid:template>
+                                </grid:Column>
+                                <grid:Column width="8rem" hAlign="Center">
+                                    <grid:label><Label text="Technical Rating" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                    <grid:template><Text text="{viewModel>technicalRating}"/></grid:template>
+                                </grid:Column>
+                                <grid:Column width="8rem" hAlign="Center">
+                                    <grid:label><Label text="Commercial Rating" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                    <grid:template><Text text="{viewModel>commercialRating}" textAlign="Right"/></grid:template>
+                                </grid:Column>
+                                <grid:Column width="8rem" hAlign="Center">
+                                    <grid:label><Label text="Vendor Qualification" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                    <grid:template><Text text="{viewModel>vendorQualification}"/></grid:template>
+                                </grid:Column>
+                                <grid:Column width="8rem" hAlign="Center">
+                                    <grid:label><Label text="Qualification Score" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                    <grid:template><Text text="{viewModel>vendorQualificationScore}"/></grid:template>
+                                </grid:Column>
+                                <grid:Column width="11rem" hAlign="Center">
+                                    <grid:label><Label text="Payment Terms" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                    <grid:template><Text text="{viewModel>paymentTermsDesc}"/></grid:template>
+                                </grid:Column>
+                                <grid:Column width="10rem" hAlign="End">
+                                    <grid:label><Label text="PO Amount" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                    <grid:template><Text text="{path: 'viewModel>netLandedCost', formatter: '.formatINR'}" textAlign="End"/></grid:template>
+                                </grid:Column>
+                                <grid:Column width="10rem" hAlign="End">
+                                    <grid:label><Label text="Vendor Quoted Amount" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                    <grid:template><Text text="{path: 'viewModel>negNetCost', formatter: '.formatINR'}" textAlign="End"/></grid:template>
+                                </grid:Column>
+                                <grid:Column width="8rem" hAlign="Center">
+                                    <grid:label><Label text="PO Number" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                    <grid:template><Text text="{viewModel>poNo}"/></grid:template>
+                                </grid:Column>
+                                <grid:Column width="11rem" hAlign="Center">
+                                    <grid:label><Label text="Scheduling Agr. No." textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                    <grid:template><Text text="{viewModel>schedulingAgreementNo}"/></grid:template>
+                                </grid:Column>
+                                <grid:Column width="11rem" hAlign="Center">
+                                    <grid:label><Label text="Contract Number" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                    <grid:template><Text text="{viewModel>contractNo}"/></grid:template>
+                                </grid:Column>
+                            </grid:columns>
+                        </grid:Table>
+                    </ScrollContainer>
+
+                    <!-- QCS - Vendor Comparison -->
+                    <Title text="QCS – Vendor Comparison" level="H5" class="sapUiSmallMarginTop sapUiSmallMarginBottom"/>
+                    <ScrollContainer horizontal="true" vertical="false" width="100%">
+                        <grid:TreeTable
+                            id="versionQcsTreeTable"
+                            rows="{viewModel>/versionView/qcsTreeData}"
+                            selectionMode="None"
+                            expandFirstLevel="false"
+                            visibleRowCount="15"
+                            fixedColumnCount="4"
+                            enableColumnReordering="false"
+                            rowHeight="30"
+                            noData="No QCS data available for this version"
+                            width="100%">
+
+                            <grid:rowSettingsTemplate>
+                                <grid:RowSettings highlight="{= ${viewModel>NodeType} === 'PR' ? 'Information' : ${viewModel>NodeType} === 'SUMMARY' ? 'Success' : 'None' }"/>
+                            </grid:rowSettingsTemplate>
+
+                            <grid:columns>
+                                <grid:Column width="200px">
+                                    <grid:label><Label text="PR No./Short Text" textAlign="Center" width="100%"/></grid:label>
+                                    <grid:template>
+                                        <Label text="{= ${viewModel>NodeType} === 'PR' ? (${viewModel>PrNumber} || '') : ${viewModel>NodeType} === 'ITEM' ? ((${viewModel>PrItem} ? ${viewModel>PrItem} + ' / ' : '') + (${viewModel>MaterialDesc} || '')) : (${viewModel>Label} || '') }"
+                                            visible="{= ${viewModel>NodeType} !== 'DESC' }"
+                                            wrapping="true" width="100%"
+                                            design="{= (${viewModel>Label} === 'Net Landed Cost (Rs)' || ${viewModel>Label} === 'Commercial Rating') ? 'Bold' : 'Standard' }"/>
+                                    </grid:template>
+                                </grid:Column>
+                                <grid:Column width="100px">
+                                    <grid:label><Label text="Item Code" textAlign="Center" width="100%"/></grid:label>
+                                    <grid:template><Text text="{viewModel>Material}" visible="{= ${viewModel>NodeType} === 'ITEM' }"/></grid:template>
+                                </grid:Column>
+                                <grid:Column width="80px" hAlign="End">
+                                    <grid:label><Label text="Qty" textAlign="Center" width="100%"/></grid:label>
+                                    <grid:template><Text text="{viewModel>Qty}" visible="{= ${viewModel>NodeType} === 'ITEM' }" textAlign="End"/></grid:template>
+                                </grid:Column>
+                                <grid:Column width="60px">
+                                    <grid:label><Label text="UOM" textAlign="Center" width="100%"/></grid:label>
+                                    <grid:template><Text text="{viewModel>UOM}" visible="{= ${viewModel>NodeType} === 'ITEM' }"/></grid:template>
+                                </grid:Column>
+                                <grid:Column width="70px">
+                                    <grid:label><Label text="Plant" textAlign="Center" width="100%"/></grid:label>
+                                    <grid:template><Text text="{viewModel>Plant}" visible="{= ${viewModel>NodeType} === 'ITEM' }"/></grid:template>
+                                </grid:Column>
+                                <grid:Column width="80px" hAlign="End">
+                                    <grid:label><Label text="Rem. QTY" textAlign="Center" width="100%"/></grid:label>
+                                    <grid:template><Text text="{viewModel>RemainingQty}" visible="{= ${viewModel>NodeType} === 'ITEM' }" textAlign="End"/></grid:template>
+                                </grid:Column>
+                                <grid:Column width="80px" hAlign="End">
+                                    <grid:label><Label text="Unit LPP" textAlign="Center" width="100%"/></grid:label>
+                                    <grid:template><Text text="{viewModel>UnitLpp}" visible="{= ${viewModel>NodeType} === 'ITEM' }" textAlign="End"/></grid:template>
+                                </grid:Column>
+                                <!-- Vendor columns added dynamically by _buildVersionQcsColumns -->
+                            </grid:columns>
+                        </grid:TreeTable>
+                    </ScrollContainer>
+
+                </VBox>
+            </VBox>
+        </content>
+
+        <buttons>
+            <Button
+                text="Summary"
+                type="Emphasized"
+                press="onVersionSummaryPress"
+                enabled="{= !!${viewModel>/versionView/NfaRefNo} }"/>
+            <Button
+                text="Download Form"
+                type="Default"
+                press="onVersionDownloadFormPress"
+                enabled="{= !!${viewModel>/versionView/NfaRefNo} }"/>
+            <Button text="Close" press="onCloseVersionHistoryDialog"/>
+        </buttons>
+    </Dialog>
+
+</core:FragmentDefinition>

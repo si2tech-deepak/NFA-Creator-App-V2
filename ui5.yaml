@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://sap.github.io/ui5-tooling/schema/ui5.yaml.json
+# Local development: serves ./webapp, proxies OData + UI5 resources.
+specVersion: "4.0"
+metadata:
+  name: com.df.nfa.creator_v2
+type: application
+builder:
+  componentPreload:
+    excludes:                           # SheetJS needs global scope; QCS loads it via <script> at runtime
+      - com/df/nfa/creator_v2/xlsx.min.js
+      - com/df/nfa/creator_v2/thirdparty/**
+server:
+  customMiddleware:
+    - name: fiori-tools-proxy
+      afterMiddleware: compression
+      configuration:
+        ignoreCertErrors: true            # dev system uses a self-signed certificate
+        ui5:
+          path:
+            - /resources
+            - /test-resources
+          url: https://ui5.sap.com
+          # version not set -> uses manifest minUI5Version (1.143.2).
+          # To match the server exactly, set it to the value of sap.ui.version
+          # from the live app's browser console, e.g.  version: "1.143.2"
+        backend:
+          - path: /sap
+            url: https://vhdnlds4ci.sap.godeepak.com:44300
+            client: "120"
+    - name: fiori-tools-appreload
+      afterMiddleware: compression
+      configuration:
+        port: 35729
+        path: webapp
+        delay: 300

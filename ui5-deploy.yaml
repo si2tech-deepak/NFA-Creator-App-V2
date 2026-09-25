@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://sap.github.io/ui5-tooling/schema/ui5.yaml.json
+# Deployment to the ABAP repository (BSP). FILL IN the three <...> values before use.
+# Always run `npm run deploy-test` first (backend validates, nothing is written).
+specVersion: "4.0"
+metadata:
+  name: com.df.nfa.creator_v2
+type: application
+builder:
+  componentPreload:
+    excludes:
+      - com/df/nfa/creator_v2/xlsx.min.js
+      - com/df/nfa/creator_v2/thirdparty/**
+  resources:
+    excludes:
+      - /test/**
+      - /localService/**
+  customTasks:
+    - name: deploy-to-abap
+      afterTask: generateCachebusterInfo
+      configuration:
+        ignoreCertErrors: true
+        target:
+          url: https://vhdnlds4ci.sap.godeepak.com:44300
+          client: "120"
+        app:
+          name: <BSP_APP_NAME>          # SE80 -> BSP Application of the running app
+          description: NFA Creator V2
+          package: <PACKAGE>            # package of that BSP application
+          transport: <TRANSPORT>        # your workbench request
+        exclude:
+          - /test/

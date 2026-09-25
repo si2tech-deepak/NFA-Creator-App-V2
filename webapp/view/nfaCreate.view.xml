@@ -1,0 +1,933 @@
+<mvc:View
+    controllerName="com.df.nfa.creator_v2.controller.nfaCreate"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:uxap="sap.uxap"
+    xmlns:form="sap.ui.layout.form"
+    xmlns:layout="sap.ui.layout"
+    xmlns:core="sap.ui.core"
+    xmlns:unified="sap.ui.unified"
+    xmlns:grid="sap.ui.table">
+
+    <Page
+        id="nfaCreatePage"
+        showHeader="false"
+        enableScrolling="false">
+
+        <uxap:ObjectPageLayout
+            id="nfaCreateObjectPage"
+            showFooter="true">
+
+            <!-- ================= HEADER ================= -->
+            <uxap:headerTitle >
+                <uxap:ObjectPageHeader 
+                    objectTitle="{viewModel>/pageTitle}"
+                    objectSubtitle="{= ${viewModel>/nfaVersion} ? 'Version ' + ${viewModel>/nfaVersion} : '' }">
+                    
+
+                    <uxap:actions>
+                        <Button
+                            text="Edit"
+                            type="Emphasized"
+                            icon="sap-icon://edit"
+                            press="onEdit"
+                            visible="{= !${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isApprovedMode} &amp;&amp; !!${viewModel>/header/NfaRefNo} &amp;&amp; ${viewModel>/header/Status} !== 'Approval Pending' &amp;&amp; ${viewModel>/header/Status} !== 'Send for Approval' &amp;&amp; ${viewModel>/header/Status} !== 'Approved' }"/>
+                        <Button
+                            text="Save as Draft"
+                            type="Emphasized"
+                            icon="sap-icon://save"
+                            press="onSaveDraft"
+                            visible="{viewModel>/isEditMode}"/>
+                        <Button
+                            text="Cancel"
+                            type="Default"
+                            icon="sap-icon://cancel"
+                            press="onCancelEdit"
+                            visible="{= ${viewModel>/isEditMode} &amp;&amp; !!${viewModel>/header/NfaRefNo} }"/>
+                        <Button
+                            text="QCS"
+                            type="Neutral"
+                            press="onQCSPress"/>
+
+                        <!-- Version History Button -->
+                        <Button
+                            text="Version History"
+                            icon="sap-icon://history"
+                            type="Neutral"
+                            press="onVersionHistoryPress"
+                            visible="{= !!${viewModel>/header/NfaRefNo} }"/>
+
+                        <Button
+                            icon="sap-icon://nav-back"
+                            text="Back"
+                            press="onBack"/>
+
+                        
+                    </uxap:actions>
+                </uxap:ObjectPageHeader>
+            </uxap:headerTitle>
+            <!-- <uxap:headerContent>
+                <layout:Grid
+                    defaultSpan="XL4 L4 M6 S12"
+                    hSpacing="2"
+                    vSpacing="1">
+                    <VBox>
+                        <Label text="Purchase Requisition Number"/>
+                        <Input value="" showValueHelp="true" valueHelpOnly="true" valueHelpRequest="onPurchaseReqNum"/>
+                    </VBox>
+                    <VBox>
+                        <Label text="Project Details"/>
+                        <Input value="" showValueHelp="true" valueHelpOnly="true" valueHelpRequest="onProjectDetails"/>
+                    </VBox>
+                    <VBox>
+                        <Label text="Requisitioner"/>
+                        <Input value="" showValueHelp="true" valueHelpOnly="true" valueHelpRequest="onRequisitioner"/>
+                    </VBox>
+                </layout:Grid>
+            </uxap:headerContent> -->
+
+          <uxap:headerContent>
+    <layout:Grid
+        defaultSpan="XL3 L3 M6 S12"
+        hSpacing="1"
+        vSpacing="0">
+
+
+
+        <VBox>
+            <Label text="NFA Refrence Number"/>
+            <Input value="{viewModel>/header/NfaRefNo}" editable="false"/>
+        </VBox>
+
+        <VBox>
+            <Label text="Ariba Document Number"/>
+            <Input value="{viewModel>/header/AribaDocNo}" editable="false"/>
+        </VBox>
+
+        <VBox>
+            <Label text="NFA Title" required="{viewModel>/isEditMode}"/>
+            <Input id="nfaTitleHeaderInput" value="{viewModel>/header/NfaTitle}" maxLength="30" editable="{= !${viewModel>/isAribaMode} &amp;&amp; ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" liveChange="onNfaTitleLiveChange"/>
+        </VBox>
+
+        <VBox>
+            <Label text="NFA Type" visible="{= !!${viewModel>/header/NfaTypeDesc} }"/>
+            <Input
+                id="nfaTypeInput"
+                value="{viewModel>/header/NfaTypeDesc}"
+                editable="false"
+                visible="{= !!${viewModel>/header/NfaTypeDesc} }"/>
+            <CheckBox
+                id="nfaTypeCheckbox"
+                text="Repeat Order"
+                selected="{= ${viewModel>/header/RepeatOrder} === 'X' || ${viewModel>/header/NfaType} === 'REPO' }"
+                enabled="true"
+                visible="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isAribaMode} &amp;&amp; !${viewModel>/isDocEditMode} &amp;&amp; (!${viewModel>/header/NfaRefNo} || ${viewModel>/header/Status} === 'Draft') }"
+                select="onNfaTypeCheckbox"/>
+        </VBox>
+
+        <VBox
+            visible="{= ${viewModel>/header/RepeatOrder} === 'X' || (!!${viewModel>/header/RefPoNo} &amp;&amp; ${viewModel>/prevPoReadOnly}) }"
+            class="sapUiSmallMarginTop"
+            ><layoutData>
+                <layout:GridData span="XL3 L3 M6 S12" linebreak="true"/>
+            </layoutData>
+            <Label text="Prev. PO No." required="{= ${viewModel>/header/RepeatOrder} === 'X' &amp;&amp; ${viewModel>/isEditMode} }"/>
+            <Input
+                id="prevPoNoInput"
+                value="{viewModel>/header/RefPoNo}"
+                required="{= ${viewModel>/header/RepeatOrder} === 'X' &amp;&amp; ${viewModel>/isEditMode} }"
+                editable="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isAribaMode} &amp;&amp; !${viewModel>/isDocEditMode} &amp;&amp; !${viewModel>/prevPoReadOnly} }"
+                liveChange="onPrevPoNoLiveChange"
+                width="100%"/>
+        </VBox>
+
+    </layout:Grid>
+</uxap:headerContent>
+
+
+            <!-- ================= SECTIONS ================= -->
+            <uxap:sections  >
+                <!-- <uxap:ObjectPageSection title="Attachment">
+                    <uxap:subSections >
+                        <uxap:ObjectPageSubSection>
+                            <HBox
+                                class="sapUiSmallMarginTop"
+                                alignItems="Center"
+                                justifyContent="Start"
+                                renderType="Bare">
+
+                                <Button
+                                    icon="sap-icon://upload"
+                                    text="Upload excel"
+                                    type="Emphasized"
+                                    press="onUploadPress"/>
+
+                                <Button
+                                    icon="sap-icon://download"
+                                    text="Download Template"
+                                    type="Default"
+                                    class="sapUiSmallMarginBegin"
+                                    press="onTemplateDownload"/>
+
+                            </HBox>
+                        </uxap:ObjectPageSubSection>
+                    </uxap:subSections>
+                </uxap:ObjectPageSection> -->
+
+
+                <!-- ===== APPROVAL HISTORY ===== -->
+                <uxap:ObjectPageSection title="Approval History" visible="{= ${viewModel>/isApprovedMode} || ${viewModel>/header/Status} === 'Approval Pending' || ${viewModel>/header/Status} === 'Send for Approval' || ${viewModel>/header/Status} === 'Rejected' }">
+                    <uxap:subSections>
+                        <uxap:ObjectPageSubSection>
+                            <VBox items="{viewModel>/approvalVersions}">
+                                <VBox>
+                                    <Title text="{viewModel>versionLabel}" titleStyle="H3" level="H1" class="sapUiSmallMarginTop" textAlign="Center" width="100%"/>
+                                    <VBox items="{viewModel>phases}">
+                                        <VBox class="sapUiSmallMarginBegin sapUiSmallMarginBottom">
+                                            <Title text="{viewModel>phaseLabel}" level="H5" class="sapUiTinyMarginTop sapUiTinyMarginBottom"/>
+                                            <VBox class="approvalHistoryScroll">
+                                                <Table items="{viewModel>rows}" noDataText="No approvers" showSeparators="Inner" fixedLayout="true" width="900px" class="approvalHistoryTable">
+                                                    <columns>
+                                                        <Column width="3rem" hAlign="Center"><Text text="Sno"/></Column>
+                                                        <Column width="8rem"><Text text="User ID"/></Column>
+                                                        <Column width="12rem"><Text text="User Name"/></Column>
+                                                        <Column width="9rem"><Text text="Status"/></Column>
+                                                        <Column width="11rem"><Text text="Updated On"/></Column>
+                                                        <Column width="27rem"><Text text="Remarks"/></Column>
+                                                    </columns>
+                                                    <items>
+                                                        <ColumnListItem>
+                                                            <cells>
+                                                                <Text text="{viewModel>Sno}"/>
+                                                                <Text text="{viewModel>SapId}"/>
+                                                                <Text text="{viewModel>SapName}"/>
+                                                                <ObjectStatus text="{viewModel>statusText}" state="{viewModel>statusState}"/>
+                                                                <Text text="{viewModel>StatusUpdatedOn}"/>
+                                                                <Text text="{viewModel>RejectionRemarks}" wrapping="true"/>
+                                                            </cells>
+                                                        </ColumnListItem>
+                                                    </items>
+                                                </Table>
+                                            </VBox>
+                                        </VBox>
+                                    </VBox>
+                                </VBox>
+                            </VBox>
+                        </uxap:ObjectPageSubSection>
+                    </uxap:subSections>
+                </uxap:ObjectPageSection>
+
+                <!-- ===== BASIC DETAILS ===== -->
+                <uxap:ObjectPageSection title="Basic Information">
+                    <uxap:subSections>
+                        <uxap:ObjectPageSubSection>
+                            <layout:Grid defaultSpan="XL3 L3 M6 S12" hSpacing="2" vSpacing="1">
+
+                                <VBox>
+                                    <Label text="Date:"/>
+                                    <DatePicker
+                                        dateValue="{viewModel>/header/BiDate}"
+                                        displayFormat="dd MMM yyyy"
+                                        valueFormat="yyyy-MM-dd"
+                                        editable="false"
+                                        width="100%"/>
+                                </VBox>
+
+                                <VBox>
+                                    <Label text="Company Code:" required="true"/>
+                                    <Input
+                                        id="companyCodeInput"
+                                        value="{viewModel>/header/CompanyDescription}"
+                                        showValueHelp="{viewModel>/companyCodeEditable}"
+                                        valueHelpRequest="onCompanyCodeVH"
+                                        editable="{viewModel>/companyCodeEditable}"
+                                        showSuggestion="true"
+                                        suggest="onCompanyCodeSuggest"
+                                        change="onVHFieldChange"
+                                        liveChange="onFieldChange"
+                                        width="100%"/>
+                                </VBox>
+
+                                <VBox>
+                                    <Label text="Purchase Org:" required="true"/>
+                                    <Input
+                                        id="purchaseOrgInput"
+                                        value="{viewModel>/header/PurchaseOrgDesc}"
+                                        showValueHelp="{viewModel>/companyCodeEditable}"
+                                        valueHelpRequest="onPurchaseOrgVH"
+                                        editable="{viewModel>/companyCodeEditable}"
+                                        showSuggestion="true"
+                                        suggest="onPurchaseOrgSuggest"
+                                        change="onVHFieldChange"
+                                        liveChange="onFieldChange"
+                                        width="100%"/>
+                                </VBox>
+
+                                <VBox>
+                                    <Label text="Plant:" required="true"/>
+                                    <Input
+                                        id="headerPlantInput"
+                                        value="{viewModel>/header/PlantDesc}"
+                                        showValueHelp="{viewModel>/companyCodeEditable}"
+                                        valueHelpRequest="onHeaderPlantVH"
+                                        editable="{viewModel>/companyCodeEditable}"
+                                        showSuggestion="true"
+                                        suggest="onHeaderPlantSuggest"
+                                        change="onVHFieldChange"
+                                        liveChange="onFieldChange"
+                                        width="100%"/>
+                                </VBox>
+
+                                <VBox>
+                                    <Label text="Purchase Group:" required="true"/>
+                                    <Input
+                                        id="purchaseGroupInput"
+                                        value="{viewModel>/header/PurchaseGroupDesc}"
+                                        showValueHelp="{viewModel>/purchaseGroupEditable}"
+                                        valueHelpRequest="onPurchaseGroupVH"
+                                        editable="{viewModel>/purchaseGroupEditable}"
+                                        showSuggestion="true"
+                                        suggest="onPurchaseGroupSuggest"
+                                        change="onVHFieldChange"
+                                        liveChange="onFieldChange"
+                                        width="100%"/>
+                                </VBox>
+
+                                <VBox>
+                                    <Label text="PR Budget"/>
+                                    <Input value="{viewModel>/header/PrBudget}" editable="false" width="100%"/>
+                                </VBox>
+
+                                <VBox>
+                                    <Label text="WBS Budget"/>
+                                    <Input value="{viewModel>/header/WbsBudget}" type="Number" editable="false" width="100%"/>
+                                </VBox>
+
+                                <VBox>
+                                    <layoutData>
+                                        <layout:GridData
+                                            span="XL3 L3 M6 S12"
+                                            visibleXL="{= ${viewModel>/isAribaMode} || !!${viewModel>/header/AribaDocNo} }"
+                                            visibleL="{= ${viewModel>/isAribaMode} || !!${viewModel>/header/AribaDocNo} }"
+                                            visibleM="{= ${viewModel>/isAribaMode} || !!${viewModel>/header/AribaDocNo} }"
+                                            visibleS="{= ${viewModel>/isAribaMode} || !!${viewModel>/header/AribaDocNo} }"/>
+                                    </layoutData>
+                                    <Label text="Baseline Spend"/>
+                                    <Input value="{viewModel>/header/BaselineSpend}" editable="false" width="100%"/>
+                                </VBox>
+
+                                <VBox>
+                                    <Label text="Currency:" required="true"/>
+                                    <Input
+                                        id="currencyInput"
+                                        value="{viewModel>/header/CurrencyDesc}"
+                                        showValueHelp="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }"
+                                        valueHelpRequest="onCurrencyVH"
+                                        editable="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }"
+                                        showSuggestion="true"
+                                        suggest="onCurrencySuggest"
+                                        change="onVHFieldChange"
+                                        liveChange="onFieldChange"
+                                        width="100%"/>
+                                </VBox>
+
+                                <VBox>
+                                    <Label text="Incoterms" required="true"/>
+                                    <Input
+                                        id="incotermsInput"
+                                        value="{viewModel>/header/IncotermDesc}"
+                                        showValueHelp="{viewModel>/isEditMode}"
+                                        valueHelpRequest="onIncotermsVH"
+                                        editable="{viewModel>/isEditMode}"
+                                        showSuggestion="true"
+                                        suggest="onIncotermsSuggest"
+                                        change="onVHFieldChange"
+                                        width="100%"/>
+                                </VBox>
+
+                                <!-- <VBox>
+                                    <Label text="Plant:"/>
+                                    <Input
+                                        id="headerPlantInput"
+                                        value="{viewModel>/header/PlantDesc}"
+                                        showValueHelp="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} &amp;&amp; !${viewModel>/header/AribaDocNo} }"
+                                        valueHelpRequest="onHeaderPlantVH"
+                                        editable="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} &amp;&amp; !${viewModel>/header/AribaDocNo} }"
+                                        showSuggestion="true"
+                                        suggest="onHeaderPlantSuggest"
+                                        width="100%"/>
+                                </VBox> -->
+
+                                <VBox>
+                                    <Label text="TBE Date:"/>
+                                    <DatePicker
+                                        id="tbdDatePicker"
+                                        dateValue="{viewModel>/header/TbdDate}"
+                                        displayFormat="dd MMM yyyy"
+                                        valueFormat="yyyy-MM-dd"
+                                        editable="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }"
+                                        width="100%"/>
+                                </VBox>
+
+                                <VBox>
+                                    <Label text="Created By:"/>
+                                    <Input value="{viewModel>/header/CreatedBy}" editable="false" width="100%"/>
+                                </VBox>
+
+                                <VBox>
+                                    <layoutData>
+                                        <layout:GridData span="XL12 L12 M12 S12"/>
+                                    </layoutData>
+                                    <Label text="Long Text:" required="true"/>
+                                    <TextArea
+                                        rows="3"
+                                        value="{viewModel>/header/Description}"
+                                        maxLength="1000"
+                                        editable="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }"
+                                        width="100%"
+                                        liveChange="onCharLimitChange"/>
+                                    <HBox justifyContent="End" width="100%">
+                                        <Text text="{= (1000 - (${viewModel>/header/Description} ? ${viewModel>/header/Description}.length : 0)) + '/1000 char. remaining'}" class="nfaCharCount"/>
+                                    </HBox>
+                                </VBox>
+
+                            </layout:Grid>
+                        </uxap:ObjectPageSubSection>
+                    </uxap:subSections>
+                </uxap:ObjectPageSection>
+
+                <!-- ===== VENDORS QUOTED ===== -->
+                <uxap:ObjectPageSection title="Vendors Quoted">
+                    <uxap:subSections>
+                        <uxap:ObjectPageSubSection>
+                            <VBox>
+
+                                <OverflowToolbar>
+                                    <ToolbarSpacer />
+                                    <Button
+                                        icon="sap-icon://add"
+                                        text="Add Vendor"
+                                        type="Emphasized"
+                                        visible="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} &amp;&amp; !${viewModel>/header/AribaDocNo} }"
+                                        press="onAddVendor"/>
+                                    <Button
+                                        icon="sap-icon://delete"
+                                        text="Delete"
+                                        type="Reject"
+                                        visible="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} &amp;&amp; !${viewModel>/header/AribaDocNo} }"
+                                        press="onDeleteVendor"/>
+                                </OverflowToolbar>
+
+                                <grid:Table
+                                    id="vendorTable"
+                                    rows="{viewModel>/vendors}"
+                                    selectionMode="MultiToggle"
+                                    visibleRowCountMode="Auto"
+                                    minAutoRowCount="3"
+                                    alternateRowColors="true"
+                                    fixedColumnCount="2"
+                                    width="100%">
+
+                                    <grid:columns>
+                                        <grid:Column width="5rem" hAlign="Center">
+                                            <grid:label><Label text="Sl. No." textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template><Text text="{viewModel>slNo}"/></grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="14rem" hAlign="Center">
+                                            <grid:label><Label text="Vendor" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template>
+                                                <Input value="{viewModel>vendorName}" showValueHelp="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} &amp;&amp; (!${viewModel>/isAribaMode} || !${viewModel>fromBackend}) }" valueHelpRequest="onVendorVH" editable="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} &amp;&amp; (!${viewModel>/isAribaMode} || !${viewModel>fromBackend}) }" width="100%"/>
+                                            </grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="8rem" hAlign="Center">
+                                            <grid:label><Label text="Tech. Acceptability" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template>
+                                                <Select selectedKey="{viewModel>technicalAcceptability}" enabled="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" width="100%">
+                                                    <core:Item key="No" text="No"/>
+                                                    <core:Item key="Yes" text="Yes"/>
+                                                </Select>
+                                            </grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="8rem" hAlign="Center">
+                                            <grid:label><Label text="Technical Rating" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template><Input value="{viewModel>technicalRating}" textAlign="Right" width="100%" maxLength="10" editable="{= ${viewModel>technicalAcceptability} === 'Yes' &amp;&amp; ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }"/></grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="8rem" hAlign="Center">
+                                            <grid:label><Label text="Commercial Rating" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template><Text text="{viewModel>commercialRating}" textAlign="Right"/></grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="8rem" hAlign="Center">
+                                            <grid:label><Label text="Vendor Qualification" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template>
+                                                <Select selectedKey="{viewModel>vendorQualification}" enabled="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" width="100%">
+                                                    <core:Item key="No" text="No"/>
+                                                    <core:Item key="Yes" text="Yes"/>
+                                                </Select>
+                                            </grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="8rem" hAlign="Center">
+                                            <grid:label><Label text="Qualification Score" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template><Input value="{viewModel>vendorQualificationScore}" textAlign="Right" width="100%" maxLength="10" editable="{= ${viewModel>vendorQualification} === 'Yes' &amp;&amp; ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }"/></grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="11rem" hAlign="Center">
+                                            <grid:label><Label text="Payment Terms" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template>
+                                                <Input value="{viewModel>paymentTermsDesc}" showValueHelp="{viewModel>/isEditMode}" valueHelpRequest="onPaymentTermsVH" editable="{viewModel>/isEditMode}" width="100%"/>
+                                            </grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="10rem" hAlign="End">
+                                            <grid:label><Label text="PO amount" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template><Text text="{path: 'viewModel>netLandedCost', formatter: '.formatINR'}" textAlign="End"/></grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="10rem" hAlign="End">
+                                            <grid:label><Label text="Vendor Quoted Amount" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template><Text text="{path: 'viewModel>negNetCost', formatter: '.formatINR'}" textAlign="End"/></grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="10rem" hAlign="Center">
+                                            <grid:label><Label text="Attachments" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template>
+                                                <Button icon="sap-icon://attachment" text="Attachments"
+                                                    type="Default" press="onOpenVendorAttachDialog"/>
+                                            </grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="8rem" hAlign="Center">
+                                            <grid:label><Label text="PO Number" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template><Input editable="false" value="{viewModel>poNo}" width="100%"/></grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="11rem" hAlign="Center">
+                                            <grid:label><Label text="Scheduling Agr. No." textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template><Input editable="false" value="{viewModel>schedulingAgreementNo}" width="100%"/></grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="11rem" hAlign="Center">
+                                            <grid:label><Label text="Contract Number" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template><Input editable="false" value="{viewModel>contractNo}" width="100%"/></grid:template>
+                                        </grid:Column>
+                                    </grid:columns>
+
+                                </grid:Table>
+
+                            </VBox>
+                        </uxap:ObjectPageSubSection>
+                    </uxap:subSections>
+                </uxap:ObjectPageSection>
+
+                <!-- ===== OTHER TERMS ===== -->
+                <uxap:ObjectPageSection title="Terms and Condition">
+                    <uxap:subSections>
+                        <uxap:ObjectPageSubSection>
+                            <layout:Grid defaultSpan="XL3 L3 M6 S12" hSpacing="2" vSpacing="1">
+
+                                <VBox>
+                                    <Label text="LD Clause"/>
+                                    <ComboBox selectedKey="{viewModel>/header/LdClause}" enabled="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" width="100%">
+                                        <core:Item key="Yes" text="Yes"/>
+                                        <core:Item key="No" text="No"/>
+                                    </ComboBox>
+                                    <VBox visible="{= ${viewModel>/header/LdClause} === 'Yes' }" class="sapUiTinyMarginTop">
+                                        <Label text="LD Clause %" required="{= ${viewModel>/header/LdClause} === 'Yes' }"/>
+                                        <Input id="ldClauseAmtInput" value="{viewModel>/header/LdClauseAmt}" editable="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" width="100%" liveChange="onPercentageChange" description="%" type="Number" maxLength="3"/>
+                                    </VBox>
+                                </VBox>
+
+                                <VBox>
+                                    <Label text="Advance B.G."/>
+                                    <ComboBox selectedKey="{viewModel>/header/AdvanceBg}" enabled="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" width="100%">
+                                        <core:Item key="Yes" text="Yes"/>
+                                        <core:Item key="No" text="No"/>
+                                    </ComboBox>
+                                    <VBox visible="{= ${viewModel>/header/AdvanceBg} === 'Yes' }" class="sapUiTinyMarginTop">
+                                        <Label text="Advance B.G. %" required="{= ${viewModel>/header/AdvanceBg} === 'Yes' }"/>
+                                        <Input id="advanceBgAmtInput" type="Number" value="{viewModel>/header/AdavanceBgAmt}" editable="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" width="100%" liveChange="onPercentageChange" description="%"/>
+                                    </VBox>
+                                </VBox>
+
+                                <VBox>
+                                    <Label text="Performance B.G."/>
+                                    <ComboBox selectedKey="{viewModel>/header/PerformanceBg}" enabled="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" width="100%">
+                                        <core:Item key="Yes" text="Yes"/>
+                                        <core:Item key="No" text="No"/>
+                                    </ComboBox>
+                                    <VBox visible="{= ${viewModel>/header/PerformanceBg} === 'Yes' }" class="sapUiTinyMarginTop">
+                                        <Label text="Performance B.G. %" required="{= ${viewModel>/header/PerformanceBg} === 'Yes' }"/>
+                                        <Input id="performanceBgAmtInput" type="Number" value="{viewModel>/header/PerformanceBpAmt}" editable="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" width="100%" liveChange="onPercentageChange" description="%"/>
+                                    </VBox>
+                                </VBox>
+
+                                <VBox>
+                                    <Label text="CPBG"/>
+                                    <ComboBox selectedKey="{viewModel>/header/Cpbg}" enabled="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" width="100%">
+                                        <core:Item key="Yes" text="Yes"/>
+                                        <core:Item key="No" text="No"/>
+                                    </ComboBox>
+                                    <VBox visible="{= ${viewModel>/header/Cpbg} === 'Yes' }" class="sapUiTinyMarginTop">
+                                        <Label text="CPBG %" required="{= ${viewModel>/header/Cpbg} === 'Yes' }"/>
+                                        <Input id="cpbgAmtInput" type="Number" value="{viewModel>/header/CpbgAmt}" editable="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" width="100%" liveChange="onPercentageChange" description="%"/>
+                                    </VBox>
+                                </VBox>
+
+                                <VBox>
+                                    <layoutData>
+                                        <layout:GridData span="XL12 L12 M12 S12"/>
+                                    </layoutData>
+                                    <Label text="PO Header Text:"/>
+                                    <TextArea
+                                        id="otherTermsInput"
+                                        rows="3"
+                                        value="{viewModel>/header/OtherTerms}"
+                                        maxLength="1000"
+                                        editable="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }"
+                                        width="100%"
+                                        liveChange="onTextAreaLimitChange"/>
+                                    <HBox justifyContent="End" width="100%">
+                                        <Text text="{= (1000 - (${viewModel>/header/OtherTerms} ? ${viewModel>/header/OtherTerms}.length : 0)) + '/1000 char. remaining'}" class="nfaCharCount"/>
+                                    </HBox>
+                                </VBox>
+
+                            </layout:Grid>
+
+                        </uxap:ObjectPageSubSection>
+                    </uxap:subSections>
+                </uxap:ObjectPageSection>
+
+                <!-- ===== JUSTIFICATION AND REMARKS ===== -->
+                <uxap:ObjectPageSection title="Justification For Price">
+                    <uxap:subSections>
+                        <uxap:ObjectPageSubSection>
+                            <VBox>
+                                <Label text="Select at least one justification" required="true" class="sapUiSmallMarginBottom"/>
+                                <layout:Grid defaultSpan="XL4 L4 M6 S12" hSpacing="2" vSpacing="0">
+                                    <CheckBox text="Lowest Basis" selected="{= ${viewModel>/header/LowestBasis} === 'X' }" enabled="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" select="onCheckboxSelect"/>
+                                    <CheckBox text="Technically acceptable lowest basis" selected="{= ${viewModel>/header/TechAccepLowBasis} === 'X' }" enabled="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" select="onCheckboxSelect"/>
+                                    <CheckBox text="Proprietory basis" selected="{= ${viewModel>/header/ProprietaryBasis} === 'X' }" enabled="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" select="onCheckboxSelect"/>
+                                    <CheckBox text="Single Vendor basis" selected="{= ${viewModel>/header/SingleTenderBasis} === 'X' }" enabled="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" select="onCheckboxSelect"/>
+                                    <CheckBox text="Repeat order basis" selected="{= ${viewModel>/header/RepeatOrderBasis} === 'X' }" enabled="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" select="onCheckboxSelect"/>
+                                    <CheckBox text="Rate Contract" selected="{= ${viewModel>/header/RateContract} === 'X' }" enabled="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" select="onCheckboxSelect"/>
+                                    <CheckBox text="Regularization" selected="{= ${viewModel>/header/Regularization} === 'X' }" enabled="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" select="onCheckboxSelect"/>
+                                    <CheckBox text="Final Settlement" selected="{= ${viewModel>/header/FinalSettlement} === 'X' }" enabled="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" select="onCheckboxSelect"/>
+                                    <CheckBox text="Project team Recommendation basis" selected="{= ${viewModel>/header/ProjectTeamRecommendation} === 'X' }" enabled="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }" select="onCheckboxSelect"/>
+                                </layout:Grid>
+                                <VBox class="sapUiSmallMarginTop">
+                                    <Label text="Remarks / Comments:"/>
+                                    <TextArea
+                                        value="{viewModel>/header/JustificationRemarks}"
+                                        editable="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }"
+                                        rows="3"
+                                        width="100%"
+                                        maxLength="1000"
+                                        liveChange="onTextAreaLimitChange"/>
+                                    <HBox justifyContent="End" width="100%">
+                                        <Text text="{= (1000 - (${viewModel>/header/JustificationRemarks} ? ${viewModel>/header/JustificationRemarks}.length : 0)) + '/1000 char. remaining'}" class="nfaCharCount"/>
+                                    </HBox>
+                                </VBox>
+                            </VBox>
+                        </uxap:ObjectPageSubSection>
+                    </uxap:subSections>
+                </uxap:ObjectPageSection>
+
+
+
+                <!-- ===== SPECIAL REMARKS ===== -->
+                <uxap:ObjectPageSection title="Special Remarks">
+                    <uxap:subSections>
+                        <uxap:ObjectPageSubSection>
+                            <VBox width="100%">
+
+                                <VBox class="sapUiSmallMarginBottom">
+                                    <Label text="Scope of Work"/>
+                                    <TextArea
+                                        id="scopeOfWorkInput"
+                                        value="{viewModel>/header/ScopeOfWork}"
+                                        maxLength="1000"
+                                        liveChange="onTextAreaLimitChange"
+                                        rows="3"
+                                        editable="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }"
+                                        width="100%"/>
+                                    <HBox justifyContent="End" width="100%">
+                                        <Text text="{= (1000 - (${viewModel>/header/ScopeOfWork} ? ${viewModel>/header/ScopeOfWork}.length : 0)) + '/1000 char. remaining'}" class="nfaCharCount"/>
+                                    </HBox>
+                                </VBox>
+
+                                <VBox class="sapUiSmallMarginBottom">
+                                    <Label text="Additional Information"/>
+                                    <TextArea
+                                        id="additionalInfoInput"
+                                        value="{viewModel>/header/AdditionalInfo}"
+                                        maxLength="1000"
+                                        liveChange="onTextAreaLimitChange"
+                                        rows="3"
+                                        editable="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }"
+                                        width="100%"/>
+                                    <HBox justifyContent="End" width="100%">
+                                        <Text text="{= (1000 - (${viewModel>/header/AdditionalInfo} ? ${viewModel>/header/AdditionalInfo}.length : 0)) + '/1000 char. remaining'}" class="nfaCharCount"/>
+                                    </HBox>
+                                </VBox>
+
+                                <VBox class="sapUiSmallMarginBottom">
+                                    <Label text="Negotiation Strategy"/>
+                                    <TextArea
+                                        id="negotiationStrategyInput"
+                                        value="{viewModel>/header/NegotiationStrategy}"
+                                        maxLength="1000"
+                                        liveChange="onTextAreaLimitChange"
+                                        rows="3"
+                                        editable="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/isDocEditMode} }"
+                                        width="100%"/>
+                                    <HBox justifyContent="End" width="100%">
+                                        <Text text="{= (1000 - (${viewModel>/header/NegotiationStrategy} ? ${viewModel>/header/NegotiationStrategy}.length : 0)) + '/1000 char. remaining'}" class="nfaCharCount"/>
+                                    </HBox>
+                                </VBox>
+
+                            </VBox>
+                        </uxap:ObjectPageSubSection>
+                    </uxap:subSections>
+                </uxap:ObjectPageSection>
+
+                <!-- ===== PREVIOUS ORDERS ===== -->
+                <!-- <uxap:ObjectPageSection title="Previous Orders Sanitised">
+                    <uxap:subSections>
+                        <uxap:ObjectPageSubSection>
+                            <form:SimpleForm editable="true">
+                                <Label text="Previous Orders Sanitised"/>
+                                <Select>
+                                    <core:Item text="Yes"/>
+                                    <core:Item text="No"/>
+                                </Select>
+                                <Label text="If No, Why"/>
+                                <Input />
+                            </form:SimpleForm>
+
+                        </uxap:ObjectPageSubSection>
+                    </uxap:subSections>
+                </uxap:ObjectPageSection> -->
+
+                <!-- ===== APPROVAL MATRIX ===== -->
+                <!-- <uxap:ObjectPageSection title="Approval Matrix">
+                    <uxap:subSections>
+                        <uxap:ObjectPageSubSection>
+
+                            <Table>
+                                <columns>
+                                    <Column><Text text="Buyer"/></Column>
+                                    <Column><Text text="Finance L1"/></Column>
+                                    <Column><Text text="SCM L1"/></Column>
+                                    <Column><Text text="SCM L2"/></Column>
+                                    <Column><Text text="Finance L2"/></Column>
+                                    <Column><Text text="President"/></Column>
+                                    <Column><Text text="CFO"/></Column>
+                                    <Column><Text text="CEO"/></Column>
+                                </columns>
+
+                                <items>
+                                    <ColumnListItem>
+                                        <cells>
+                                            <Input/>
+                                            <Input/>
+                                            <Input/>
+                                            <Input/>
+                                            <Input/>
+                                            <Input/>
+                                            <Input/>
+                                            <Input/>
+                                        </cells>
+                                    </ColumnListItem>
+                                </items>
+                            </Table>
+
+                        </uxap:ObjectPageSubSection>
+                    </uxap:subSections>
+                </uxap:ObjectPageSection> -->
+
+                <!-- =====  Buyer Attachment ===== -->
+                <uxap:ObjectPageSection title="Buyer Attachment">
+                    <uxap:subSections>
+                        <uxap:ObjectPageSubSection>
+                            <VBox>
+
+                                <OverflowToolbar>
+                                    <ToolbarSpacer/>
+                                    <Button icon="sap-icon://refresh" text="Fetch Attachments"
+                                        visible="{= !!${viewModel>/header/NfaRefNo} }"
+                                        press="onFetchBuyerFiles"/>
+                                    <Button icon="sap-icon://add" text="Add Attachment Line Item"
+                                        type="Emphasized"
+                                        visible="{viewModel>/isEditMode}"
+                                        press="onAddBuyerAttachmentRow"/>
+                                </OverflowToolbar>
+
+                                <Text text=""
+                                    visible="{= !${viewModel>/header/NfaRefNo} &amp;&amp; ${viewModel>/isEditMode} }"
+                                    class="sapUiSmallMarginBegin sapUiTinyMarginBottom nfaTextWarning"/>
+
+                                <grid:Table
+                                    id="buyerAttachTable"
+                                    rows="{buyerDocs>/items}"
+                                    selectionMode="None"
+                                    visibleRowCountMode="Auto"
+                                    minAutoRowCount="3"
+                                    alternateRowColors="true"
+                                    width="100%"
+                                    noData="No attachments. Click 'Add Attachment Line Item' to begin.">
+                                    <grid:columns>
+                                        <grid:Column width="4rem" hAlign="Center">
+                                            <grid:label><Label text="Sl. No." textAlign="Center" width="100%"/></grid:label>
+                                            <grid:template><Text text="{buyerDocs>slNo}" textAlign="Center"/></grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="14rem" hAlign="Center">
+                                            <grid:label><Label text="Buyer Doc Name" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template>
+                                                <Input value="{buyerDocs>BuyerDocName}" width="100%"
+                                                    editable="{= ${buyerDocs>isPredefined} !== true &amp;&amp; ${buyerDocs>status} !== 'Uploaded' &amp;&amp; ${viewModel>/isEditMode} }"
+                                                    placeholder="Enter document name"/>
+                                            </grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="11rem" hAlign="Center">
+                                            <grid:label><Label text="File Name" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template>
+                                                <VBox>
+                                                    <Link text="{buyerDocs>BuyerFileName}" wrapping="false"
+                                                        press="onOpenBuyerFile"
+                                                        visible="{= !!${buyerDocs>base64} }"/>
+                                                    <Text text="{buyerDocs>BuyerFileName}"
+                                                        visible="{= !${buyerDocs>base64} &amp;&amp; !!${buyerDocs>BuyerFileName} }"/>
+                                                    <Text text="-"
+                                                        visible="{= !${buyerDocs>BuyerFileName} }"/>
+                                                </VBox>
+                                            </grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="7rem" hAlign="Center">
+                                            <grid:label><Label text="Attach to NFA" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template>
+                                                <CheckBox
+                                                    selected="{= ${buyerDocs>Check_box} === 'X' }"
+                                                    enabled="{viewModel>/isEditMode}"
+                                                    select="onBuyerCheckboxSelect"/>
+                                            </grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="10rem" hAlign="Center">
+                                            <grid:label><Label text="Upload File" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template>
+                                                <unified:FileUploader
+                                                    buttonOnly="true"
+                                                    buttonText="Browse"
+                                                    uploadOnChange="false"
+                                                    fileType="pdf,png,jpg,jpeg,xlsx,docx"
+                                                    enabled="{viewModel>/isEditMode}"
+                                                    change="onBuyerRowFileChange"/>
+                                            </grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="16rem" hAlign="Center">
+                                            <grid:label><Label text="SharePoint Link" textAlign="Center" width="100%" wrapping="true"/></grid:label>
+                                            <grid:template>
+                                                <VBox>
+                                                    <Input value="{buyerDocs>BuyerSpl}" width="100%"
+                                                        placeholder="Paste SharePoint URL"
+                                                        visible="{viewModel>/isEditMode}"
+                                                        liveChange="onBuyerSplChange"/>
+                                                    <Link text="{buyerDocs>BuyerSpl}" href="{buyerDocs>BuyerSpl}"
+                                                        target="_blank" wrapping="false"
+                                                        visible="{= !${viewModel>/isEditMode} &amp;&amp; !!${buyerDocs>BuyerSpl} }"/>
+                                                    <Text text="-"
+                                                        visible="{= !${viewModel>/isEditMode} &amp;&amp; !${buyerDocs>BuyerSpl} }"/>
+                                                </VBox>
+                                            </grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="10rem" hAlign="Center">
+                                            <grid:label><Label text="Status" textAlign="Center" width="100%"/></grid:label>
+                                            <grid:template><ObjectStatus text="{buyerDocs>status}" state="{buyerDocs>statusState}"/></grid:template>
+                                        </grid:Column>
+                                        <grid:Column width="5rem" hAlign="Center">
+                                            <grid:label><Label text="" width="100%"/></grid:label>
+                                            <grid:template>
+                                                <Button icon="sap-icon://delete" type="Transparent"
+                                                    visible="{= ${buyerDocs>isPredefined} !== true &amp;&amp; ${buyerDocs>status} !== 'Uploaded' &amp;&amp; ${viewModel>/isEditMode} }"
+                                                    press="onDeleteBuyerAttachmentRow"/>
+                                            </grid:template>
+                                        </grid:Column>
+                                    </grid:columns>
+                                </grid:Table>
+
+                            </VBox>
+                        </uxap:ObjectPageSubSection>
+                    </uxap:subSections>
+                </uxap:ObjectPageSection>
+                
+                
+                <!-- =====  Supplier Attachment ===== -->
+                <!-- <uxap:ObjectPageSection title="Supplier Attachment">
+                    <uxap:subSections>
+                        <uxap:ObjectPageSubSection>
+                            <VBox class="sapUiSmallMargin">
+
+                                <OverflowToolbar>
+                                    <Title text="Documents ({= ${supplierDocs>/items}.length})"/>
+                                    <ToolbarSpacer/>
+                                    <Button icon="sap-icon://upload" text="Upload" press="onOpenSupplierUploadDialog"/>
+                                    <Button text="Download" press="onDownloadSupplierFiles"/>
+                                    <Button text="Remove" press="onRemoveSupplierFiles"/>
+                                </OverflowToolbar>
+
+                                <Table id="supplierTable"
+                                    mode="SingleSelectLeft"
+                                    items="{supplierDocs>/items}">
+                                    <columns>
+                                        <Column><Text text="File Name"/></Column>
+                                        <Column><Text text="Status"/></Column>
+                                        <Column><Text text="Size (KB)"/></Column>
+                                    </columns>
+                                    <items>
+                                        <ColumnListItem>
+                                            <cells>
+                                                <Text text="{supplierDocs>fileName}"/>
+                                                <Text text="{supplierDocs>status}"/>
+                                                <Text text="{supplierDocs>fileSize}"/>
+                                            </cells>
+                                        </ColumnListItem>
+                                    </items>
+                                </Table>
+
+                            </VBox>
+                        </uxap:ObjectPageSubSection>
+                    </uxap:subSections>
+                </uxap:ObjectPageSection> -->
+            </uxap:sections>
+            <!-- ================= FOOTER ================= -->
+            <uxap:footer>
+                <OverflowToolbar>
+                    <ToolbarSpacer/>
+                    <Button text="Save as Draft" type="Emphasized" press="onSaveDraft" visible="{= ${viewModel>/isEditMode} &amp;&amp; !${viewModel>/showSubmit} }"/>
+                    <!-- <Button text="Submit" type="Accept" press="onSubmit" visible="{= ${viewModel>/isEditMode} &amp;&amp; ${viewModel>/showSubmit} }"/> -->
+                    <Button text="Cancel" press="onBack" visible="{viewModel>/isEditMode}"/>
+                </OverflowToolbar>
+            </uxap:footer>
+        </uxap:ObjectPageLayout>
+
+    </Page>
+    <Dialog id="uploadDialog"
+            title="Upload Files"
+            stretchOnPhone="true">
+
+        <content>
+            <VBox>
+                <unified:FileUploader
+                    id="commonFileUploader"
+                    width="100%"
+                    multiple="true"
+                    change="onFileChange"
+                    fileType="pdf,jpg,jpeg,png,txt,xls,xlsx,doc,docx"
+                    mimeType="application/pdf,image/jpeg,image/png,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"/>
+
+                <Text id="selectedFileText" class="sapUiSmallMarginTop"/>
+            </VBox>
+        </content>
+
+        <beginButton>
+            <Button text="Add" press="onUploadFile"/>
+        </beginButton>
+
+        <endButton>
+            <Button text="Cancel" press="onCloseUploadDialog"/>
+        </endButton>
+
+    </Dialog>
+
+</mvc:View>

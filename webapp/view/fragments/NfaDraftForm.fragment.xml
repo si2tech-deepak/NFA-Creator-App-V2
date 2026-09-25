@@ -1,0 +1,217 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:layout="sap.ui.layout"
+    xmlns:form="sap.ui.layout.form"
+    xmlns:unified="sap.ui.unified">
+
+    <Dialog
+        id="nfaDraftFormDialog"
+        contentWidth="700px"
+        verticalScrolling="true"
+        resizable="true"
+        draggable="true">
+
+        <content>
+            <form:SimpleForm
+                editable="true"
+                layout="ResponsiveGridLayout"
+                labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12"
+                emptySpanXL="0" emptySpanL="0" emptySpanM="0"
+                columnsXL="2" columnsL="2" columnsM="1"
+                class="sapUiSmallMargin">
+
+                <!-- 1. Discipline -->
+                <form:content>
+                    <Label text="Discipline" required="true"/>
+                    <Select selectedKey="{draftForm>/Discipline}" width="100%" forceSelection="false" enabled="{draftForm>/formEditable}"
+                        items="{path: '/et_nfa_search_helpSet', filters: [{path: 'Type', operator: 'EQ', value1: 'DISCIPLINE'}]}">
+                        <core:Item key="{KeyDataType}" text="{Description}"/>
+                    </Select>
+
+                    <!-- 2. PO Type -->
+                    <Label text="PO Type" required="true"/>
+                    <Select selectedKey="{draftForm>/PoType}" width="100%" forceSelection="false" enabled="{draftForm>/formEditable}"
+                        items="{path: '/et_nfa_search_helpSet', filters: [{path: 'Type', operator: 'EQ', value1: 'PO_TYPE'}]}">
+                        <core:Item key="{KeyDataType}" text="{Description}"/>
+                    </Select>
+
+                    <!-- 3. Vendor Assessment -->
+                    <Label text="Vendor Assessment"/>
+                    <VBox class="nfaCharCountWrapper">
+                    <TextArea value="{draftForm>/VendorAssessment}" rows="3" width="100%" growing="true" maxLength="500" editable="{draftForm>/formEditable}"
+                            liveChange="onCharCount"/>
+                        <Text class="nfaCharCounter" text="0/500"/>
+                    </VBox>
+
+                    <!-- 4. Name of Vendor -->
+                    <Label text="Awarded Vendor"/>
+                    <Input value="{draftForm>/VendorName}" width="100%" editable="{draftForm>/formEditable}"
+                        showSuggestion="true" suggestionItems="{path: 'draftForm>/vendorOptions'}">
+                        <suggestionItems>
+                            <core:ListItem key="{draftForm>name}" text="{draftForm>name}"/>
+                        </suggestionItems>
+                    </Input>
+
+                    <!-- 5. Currency -->
+                    <Label text="Currency" required="true"/>
+                    <Select selectedKey="{draftForm>/Currency}" width="100%" forceSelection="false" enabled="{draftForm>/formEditable}"
+                        items="{path: '/et_nfa_search_helpSet', filters: [{path: 'Type', operator: 'EQ', value1: 'CURRENCY'}]}">
+                        <core:Item key="{KeyDataType}" text="{Description}"/>
+                    </Select>
+
+                    <!-- 6. Budgeted Amount -->
+                    <Label text="Budgeted Amount"/>
+                    <VBox width="100%">
+                        <Input value="{draftForm>/BudgetedAmount}" type="Number" textAlign="End" width="100%" editable="{draftForm>/formEditable}" visible="{draftForm>/formEditable}"/>
+                        <Text text="{path: 'draftForm>/BudgetedAmount', formatter: '._formatINR'}" textAlign="End" width="100%" visible="{= !${draftForm>/formEditable} }"/>
+                    </VBox>
+
+                    <!-- 6b. WBS Amount -->
+                    <Label text="WBS Amount"/>
+                    <VBox width="100%">
+                        <Input value="{draftForm>/WbsAmount}" type="Number" textAlign="End" width="100%" editable="false" visible="{draftForm>/formEditable}"/>
+                        <Text text="{path: 'draftForm>/WbsAmount', formatter: '._formatINR'}" textAlign="End" width="100%" visible="{= !${draftForm>/formEditable} }"/>
+                    </VBox>
+
+                    <!-- 8. LPP (Tax-inclusive) -->
+                    <Label text="LPP"/>
+                    <VBox width="100%">
+                        <Input value="{draftForm>/LppAmount}" type="Number" textAlign="End" width="100%" editable="{draftForm>/formEditable}" visible="{draftForm>/formEditable}"/>
+                        <Text text="{path: 'draftForm>/LppAmount', formatter: '._formatINR'}" textAlign="End" width="100%" visible="{= !${draftForm>/formEditable} }"/>
+                    </VBox>
+
+                    <!-- 9. ICE (Tax-inclusive) -->
+                    <Label text="ICE"/>
+                    <VBox width="100%">
+                        <Input value="{draftForm>/IceAmount}" type="Number" textAlign="End" width="100%" editable="{draftForm>/formEditable}" visible="{draftForm>/formEditable}"/>
+                        <Text text="{path: 'draftForm>/IceAmount', formatter: '._formatINR'}" textAlign="End" width="100%" visible="{= !${draftForm>/formEditable} }"/>
+                    </VBox>
+
+                     <!-- 9c. Total Basic -->
+                    <Label text="Total Basic"/>
+                    <Text text="{path: 'draftForm>/TotalBasicAmount', formatter: '._formatINR'}" textAlign="End" width="100%"/>
+
+                    <!-- 9b. GST Amount -->
+                    <Label text="GST Amount"/>
+                    <Text text="{path: 'draftForm>/GstAmount', formatter: '._formatINR'}" textAlign="End" width="100%"/>
+
+                   
+                    <!-- 7. Purchase Order (PO) Amount -->
+                    <Label text="Purchase Order (PO) Amount"/>
+                    <Text text="{path: 'draftForm>/PoAmount', formatter: '._formatINR'}" textAlign="End" width="100%"/>
+
+                    <!-- Net Impact -->
+                    <Label text="Net Impact"/>
+                    <Text text="{path: 'draftForm>/NetImpact', formatter: '._formatINR'}" textAlign="End" width="100%"/>
+
+                    <!-- Previous PO Amount -->
+                    <Label text="Previous PO Amount"/>
+                    <Text text="{path: 'draftForm>/PrevPoAmt', formatter: '._formatINR'}" textAlign="End" width="100%"/>
+
+                    <!-- Original PO Amount -->
+                    <Label text="Original PO Amount"/>
+                    <Text text="{path: 'draftForm>/OrginalPoAmt', formatter: '._formatINR'}" textAlign="End" width="100%"/>
+
+                    <!-- 10. Contract Effective Date (CED) -->
+                    <Label text="Contract Effective Date (CED)"/>
+                    <DatePicker value="{draftForm>/ContractEffDate}" displayFormat="dd.MM.yyyy" valueFormat="dd.MM.yyyy" width="100%" editable="{draftForm>/formEditable}"/>
+
+                    <!-- 11. Contract Delivery Date (CDD) -->
+                    <Label text="Contract Delivery Date (CDD)"/>
+                    <DatePicker value="{draftForm>/ContractDelivDate}" displayFormat="dd.MM.yyyy" valueFormat="dd.MM.yyyy" width="100%" editable="{draftForm>/formEditable}"/>
+
+                    <!-- 12. Mobilization Date at Site -->
+                    <Label text="Mobilization Date at Site"/>
+                    <DatePicker value="{draftForm>/MobilizationDate}" displayFormat="dd.MM.yyyy" valueFormat="dd.MM.yyyy" width="100%" editable="{draftForm>/formEditable}"/>
+
+                    <!-- 13. Impact on Schedule -->
+                    <Label text="Impact on Schedule"/>
+                    <Select selectedKey="{draftForm>/ImpactOnSchedule}" width="100%" forceSelection="false" enabled="{draftForm>/formEditable}">
+                        <core:Item key="Yes" text="Yes"/>
+                        <core:Item key="No" text="No"/>
+                    </Select>
+
+                    <!-- 13b. Impact Remarks -->
+                    <Label text="Impact Remarks" visible="{= ${draftForm>/ImpactOnSchedule} === 'Yes' }"/>
+                    <VBox class="nfaCharCountWrapper" visible="{= ${draftForm>/ImpactOnSchedule} === 'Yes' }">
+                    <TextArea value="{draftForm>/ImpactRemarks}" rows="3" width="100%" growing="true" maxLength="100" editable="{draftForm>/formEditable}"
+                            liveChange="onCharCount"/>
+                        <Text class="nfaCharCounter" text="0/100"/>
+                    </VBox>
+
+                    <!-- 14. WBS Information -->
+                    <Label text="WBS Information"/>
+                    <Input value="{draftForm>/WbsInfo}" width="100%" maxLength="24" editable="{draftForm>/formEditable}"/>
+
+                    <!-- 15. Incoterm -->
+                    <Label text="Incoterm" required="true"/>
+                    <Select selectedKey="{draftForm>/Incoterm}" width="100%" forceSelection="false" enabled="{draftForm>/formEditable}"
+                        items="{path: '/et_nfa_search_helpSet', filters: [{path: 'Type', operator: 'EQ', value1: 'INCOTERMS'}]}">
+                        <core:Item key="{KeyDataType}" text="{Description}"/>
+                    </Select>
+
+                    <!-- 16. Deviation on Commercial Terms -->
+                    <Label text="Deviation on Commercial Terms"/>
+                    <Select selectedKey="{draftForm>/DeviationOnCommTerms}" width="100%" forceSelection="false" enabled="{draftForm>/formEditable}">
+                        <core:Item key="Yes" text="Yes"/>
+                        <core:Item key="No" text="No"/>
+                    </Select>
+
+                    <!-- 17. Special Commercial Terms -->
+                    <Label text="Special Commercial Terms" visible="{= ${draftForm>/DeviationOnCommTerms} === 'Yes' }"/>
+                    <VBox class="nfaCharCountWrapper" visible="{= ${draftForm>/DeviationOnCommTerms} === 'Yes' }">
+                    <TextArea value="{draftForm>/SpecialCommTerms}" rows="3" width="100%" growing="true" maxLength="500" editable="{draftForm>/formEditable}"
+                            liveChange="onCharCount"/>
+                        <Text class="nfaCharCounter" text="0/500"/>
+                    </VBox>
+
+                    <!-- 18. Recommendation -->
+                    <Label text="Recommendation"/>
+                    <VBox class="nfaCharCountWrapper">
+                    <TextArea value="{draftForm>/Recommendation}" rows="3" width="100%" growing="true" maxLength="500" editable="{draftForm>/formEditable}"
+                            liveChange="onCharCount"/>
+                        <Text class="nfaCharCounter" text="0/500"/>
+                    </VBox>
+
+                    <!-- 19. Additional Information -->
+                    <Label text="Additional Information"/>
+                    <VBox class="nfaCharCountWrapper">
+                    <TextArea value="{draftForm>/AdditionalInfo}" rows="3" width="100%" growing="true" maxLength="500" editable="{draftForm>/formEditable}"
+                            liveChange="onCharCount"/>
+                        <Text class="nfaCharCounter" text="0/500"/>
+                    </VBox>
+
+                    <!-- 20. Reason for Amendment (DocEdit only) -->
+                    <Label text="Reason for Amendment" required="true" visible="{draftForm>/isDocEditMode}"/>
+                    <VBox class="nfaCharCountWrapper" visible="{draftForm>/isDocEditMode}">
+                        <TextArea value="{draftForm>/AmendedReason}" rows="2" width="100%" growing="true" maxLength="255"
+                            editable="{draftForm>/formEditable}" liveChange="onCharCount"
+                            placeholder="Enter reason for amendment (max 255 chars)"/>
+                        <Text class="nfaCharCounter" text="0/255"/>
+                    </VBox>
+                </form:content>
+            </form:SimpleForm>
+        </content>
+
+        <customHeader>
+            <Bar>
+                <contentMiddle>
+                    <Title text="NFA Draft Details"/>
+                </contentMiddle>
+            </Bar>
+        </customHeader>
+        <buttons>
+            <Button text="Confirm &amp; Save" type="Emphasized" press="onDraftFormConfirm"
+                visible="{= ${draftForm>/formEditable} &amp;&amp; !${draftForm>/summaryMode} }"/>
+            <Button text="Cancel" type="Default" press="onDraftFormCancel"
+                visible="{= ${draftForm>/formEditable} &amp;&amp; !${draftForm>/summaryMode} }"/>
+            <Button text="Edit" icon="sap-icon://edit" type="Default" press="onDraftFormEdit"
+                visible="{= !${draftForm>/formEditable} &amp;&amp; !${draftForm>/summaryMode} }"/>
+            <Button text="Save" icon="sap-icon://save" type="Default" press="onDraftFormConfirm"
+                visible="{= !${draftForm>/formEditable} &amp;&amp; !${draftForm>/summaryMode} }"/>
+            <Button text="Close" type="Default" press="onDraftFormCancel"/>
+        </buttons>
+    </Dialog>
+
+</core:FragmentDefinition>

@@ -1,0 +1,311 @@
+<mvc:View
+    controllerName="com.df.nfa.creator_v2.controller.nfaCreator"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:m="sap.m"
+    xmlns:f="sap.f"
+    xmlns:fb="sap.ui.comp.filterbar"
+    xmlns:core="sap.ui.core">
+
+    <f:DynamicPage fitContent="true">
+        <f:title>
+            <f:DynamicPageTitle>
+                <f:heading>
+                    <m:Title text="NFA Creator"/>
+                </f:heading>
+            </f:DynamicPageTitle>
+        </f:title>
+        <f:header>
+            <f:DynamicPageHeader>
+                <f:content>
+                    <fb:FilterBar id="filterbar" persistencyKey="nfaCreatorPersKey" useToolbar="false" search=".onApplyFilter"
+                        showClearOnFB="true" clear="onResetFilter">
+                        <fb:filterGroupItems>
+                            <fb:FilterGroupItem id="nfaExpressionFilter" name="NFA Refrence No." label="NFA Refrence No." groupName="Group1" visibleInFilterBar="true">
+                                <fb:control>
+                                    <m:Input id="filterNFAExpression" placeholder="Enter NFA Refrence No." showClearIcon="true"/>
+                                </fb:control>
+                            </fb:FilterGroupItem>
+                            <fb:FilterGroupItem id="fromDateFilter" name="FromDate" label="Create on from" groupName="Group1" visibleInFilterBar="true">
+                                <fb:control>
+                                    <m:DatePicker id="filterStartDate" displayFormat="dd MMM yyyy" valueFormat="yyyy-MM-dd"/>
+                                </fb:control>
+                            </fb:FilterGroupItem>
+                            <fb:FilterGroupItem id="toDateFilter" name="ToDate" label="Create on to" groupName="Group1" visibleInFilterBar="true">
+                                <fb:control>
+                                    <m:DatePicker id="filterEndDate" displayFormat="dd MMM yyyy" valueFormat="yyyy-MM-dd"/>
+                                </fb:control>
+                            </fb:FilterGroupItem>
+                            <fb:FilterGroupItem id="statusFilter" name="Status" label="Status" groupName="Group1" visibleInFilterBar="true">
+                                <fb:control>
+                                    <m:ComboBox id="filterStatus" showClearIcon="true">
+                                        <core:Item key="" text="All"/>
+                                        <core:Item key="Approved" text="Approved"/>
+                                        <core:Item key="Pending" text="Pending"/>
+                                        <core:Item key="Rejected" text="Rejected"/>
+                                    </m:ComboBox>
+                                </fb:control>
+                            </fb:FilterGroupItem>
+                        </fb:filterGroupItems>
+                    </fb:FilterBar>
+                </f:content>
+            </f:DynamicPageHeader>
+        </f:header>
+        <f:content>
+            <m:IconTabBar id="icontab1" expanded="{device>/isNoPhone}" select="onIconTabSelected" height="100%">
+                <m:items>
+                    <m:IconTabFilter icon="sap-icon://document" iconColor="Default" text="All List" key="NFAList">
+                        <m:Table
+                            id="nfaCreatorTable"
+                            items="{/nfaList}"
+                            mode="None"
+                            sticky="ColumnHeaders,HeaderToolbar"
+                            class="nfaCreatorTable">
+                            <m:headerToolbar>
+                                <m:OverflowToolbar design="Solid" style="Clear">
+                                    <m:ToolbarSpacer/>
+                                    <m:Button icon="sap-icon://create-form" text="Create New Using Ariba" type="Emphasized" press="onCreate"/>
+                                    <m:Button icon="sap-icon://write-new" text="Create New Manual" type="Attention" press="onCreateNew"/>
+                                    <!-- <m:Button text="Test Posting" type="Default" press="onTestPosting" icon="sap-icon://lab"/> -->
+                                </m:OverflowToolbar>
+                            </m:headerToolbar>
+                            <m:columns>
+                                <m:Column><m:Text text="NFA Refrence No."/></m:Column>
+                                <m:Column><m:Text text="Created On"/></m:Column>
+                                <m:Column><m:Text text="Created By"/></m:Column>
+                                <m:Column><m:Text text="Current Status"/></m:Column>
+                                <m:Column><m:Text text="Approval Levels"/></m:Column>
+                                <m:Column width="3rem" hAlign="Center"><m:Text text=""/></m:Column>
+                            </m:columns>
+                            <m:items>
+                                <m:ColumnListItem>
+                                    <m:cells>
+                                        <m:Text text="{eventId}"/>
+                                        <m:Text text="{requestedOn}"/>
+                                        <m:Text text="{createdBy}"/>
+                                        <m:ObjectStatus text="{currentStatus}" state="{statusState}"/>
+                                        <m:Button text="View Levels" type="Transparent" press="onViewLevels"/>
+                                        <m:Button icon="sap-icon://navigation-right-arrow" type="Transparent" press="onNavigateToDetails" tooltip="View Details"/>
+                                    </m:cells>
+                                </m:ColumnListItem>
+                            </m:items>
+                        </m:Table>
+                    </m:IconTabFilter>
+                    <m:IconTabFilter icon="sap-icon://edit-outside" iconColor="Neutral" text="Draft" key="Draft">
+                        <m:Table
+                            id="draftTable"
+                            items="{/draftList}"
+                            growing="true"
+                            mode="None"
+                            sticky="ColumnHeaders,HeaderToolbar"
+                            class="nfaCreatorTable">
+                            <m:columns>
+                                <m:Column><m:Text text="NFA Refrence No."/></m:Column>
+                                <m:Column><m:Text text="Created On"/></m:Column>
+                                <m:Column><m:Text text="Created By"/></m:Column>
+                                <m:Column><m:Text text="Current Status"/></m:Column>
+                                <m:Column><m:Text text="Approval Levels"/></m:Column>
+                                <m:Column width="3rem" hAlign="Center"><m:Text text=""/></m:Column>
+                            </m:columns>
+                            <m:items>
+                                <m:ColumnListItem>
+                                    <m:cells>
+                                        <m:Text text="{eventId}"/>
+                                        <m:Text text="{requestedOn}"/>
+                                        <m:Text text="{createdBy}"/>
+                                        <m:ObjectStatus text="{currentStatus}" state="{statusState}"/>
+                                        <m:Button text="View Levels" type="Transparent" press="onViewLevels"/>
+                                        <m:Button icon="sap-icon://navigation-right-arrow" type="Transparent" press="onNavigateToDetails" tooltip="View Details"/>
+                                    </m:cells>
+                                </m:ColumnListItem>
+                            </m:items>
+                        </m:Table>
+                    </m:IconTabFilter>
+                    <m:IconTabFilter icon="sap-icon://pending" iconColor="Critical" text="Pending" key="ApprovalPending">
+                        <m:Table
+                            id="approvalPendingTable"
+                            items="{/approvalPendingList}"
+                            growing="true"
+                            mode="None"
+                            sticky="ColumnHeaders,HeaderToolbar"
+                            class="nfaCreatorTable">
+                            <m:columns>
+                                <m:Column><m:Text text="NFA Refrence No."/></m:Column>
+                                <m:Column><m:Text text="Created On"/></m:Column>
+                                <m:Column><m:Text text="Created By"/></m:Column>
+                                <m:Column><m:Text text="Current Status"/></m:Column>
+                                <m:Column><m:Text text="Approval Levels"/></m:Column>
+                                <m:Column width="3rem" hAlign="Center"><m:Text text=""/></m:Column>
+                            </m:columns>
+                            <m:items>
+                                <m:ColumnListItem>
+                                    <m:cells>
+                                        <m:Text text="{eventId}"/>
+                                        <m:Text text="{requestedOn}"/>
+                                        <m:Text text="{createdBy}"/>
+                                        <m:ObjectStatus text="{currentStatus}" state="{statusState}"/>
+                                        <m:Button text="View Levels" type="Transparent" press="onViewLevels"/>
+                                        <m:Button icon="sap-icon://navigation-right-arrow" type="Transparent" press="onNavigateToDetails" tooltip="View Details"/>
+                                    </m:cells>
+                                </m:ColumnListItem>
+                            </m:items>
+                        </m:Table>
+                    </m:IconTabFilter>
+                    <m:IconTabFilter icon="sap-icon://checklist-item" iconColor="Positive" text="Approved" key="Approved">
+                        <m:Table
+                            id="approvedTable"
+                            items="{/approvedList}"
+                            growing="true"
+                            mode="SingleSelectLeft"
+                            includeItemInSelection="true"
+                            selectionChange="onApprovedSelectionChange"
+                            noDataText="No approved NFAs found"
+                            sticky="ColumnHeaders,HeaderToolbar"
+                            class="nfaCreatorTable">
+                            <m:headerToolbar>
+                                <m:OverflowToolbar design="Solid" style="Clear">
+                                    <m:Text text="{= ${/approvedSelected} > 0 ? ${/approvedSelected} + ' NFA(s) selected' : 'Select NFA(s) to create document' }"
+                                        class="{= ${/approvedSelected} > 0 ? 'sapUiSmallMarginBegin nfaTextHighlighted' : 'sapUiSmallMarginBegin nfaTextMuted' }"/>
+                                    <m:ToolbarSpacer/>
+                                    <m:Button id="createDocumentBtn" text="Create / Update Document" type="Emphasized"
+                                        icon="sap-icon://create-form" press="onOpenCreateDocument"
+                                        enabled="{= ${/approvedSelected} > 0}"/>
+                                </m:OverflowToolbar>
+                            </m:headerToolbar>
+                            <m:columns>
+                                <m:Column><m:Text text="NFA Refrence No."/></m:Column>
+                                <m:Column><m:Text text="Requested On"/></m:Column>
+                                <m:Column><m:Text text="Created By"/></m:Column>
+                                <m:Column><m:Text text="Current Status"/></m:Column>
+                                <m:Column><m:Text text="Approval Levels"/></m:Column>
+                                <m:Column width="3rem" hAlign="Center"><m:Text text=""/></m:Column>
+                            </m:columns>
+                            <m:items>
+                                <m:ColumnListItem type="Inactive">
+                                    <m:cells>
+                                        <m:Text text="{eventId}"/>
+                                        <m:Text text="{requestedOn}"/>
+                                        <m:Text text="{createdBy}"/>
+                                        <m:ObjectStatus text="{currentStatus}" state="{statusState}"/>
+                                        <m:Button text="View Levels" type="Transparent" press="onViewLevels"/>
+                                        <m:Button icon="sap-icon://navigation-right-arrow" type="Transparent" press="onNavigateToDetails" tooltip="View Details"/>
+                                    </m:cells>
+                                </m:ColumnListItem>
+                            </m:items>
+                        </m:Table>
+                    </m:IconTabFilter>
+                    <m:IconTabFilter icon="sap-icon://documents" iconColor="Default" text="Documents" key="Documents">
+                        <m:Table
+                            id="documentsTable"
+                            items="{/documentsList}"
+                            growing="true"
+                            
+                            includeItemInSelection="true"
+                            selectionChange="onDocumentsSelectionChange"
+                            noDataText="No documents found"
+                            sticky="ColumnHeaders,HeaderToolbar"
+                            class="nfaCreatorTable">
+                            <m:headerToolbar>
+                                <m:OverflowToolbar design="Solid" style="Clear">
+                                    <m:Text text="{= ${/documentsSelected} > 0 ? ${/documentsSelected} + ' NFA(s) selected' : 'Select NFA(s) to create document' }"
+                                        class="{= ${/documentsSelected} > 0 ? 'sapUiSmallMarginBegin nfaTextHighlighted' : 'sapUiSmallMarginBegin nfaTextMuted' }"/>
+                                    <m:ToolbarSpacer/>
+                                    <!-- <m:Button text="Create Document" type="Emphasized"
+                                        icon="sap-icon://create-form" press="onOpenCreateDocumentFromDocs"
+                                        enabled="{= ${/documentsSelected} > 0}"/> -->
+                                </m:OverflowToolbar>
+                            </m:headerToolbar>
+                            <m:columns>
+                                <m:Column><m:Text text="NFA Refrence No."/></m:Column>
+                                <!-- <m:Column><m:Text text="Document Type"/></m:Column> -->
+                                <m:Column><m:Text text="Created On"/></m:Column>
+                                <m:Column><m:Text text="Created By"/></m:Column>
+                                <m:Column><m:Text text="Current Status"/></m:Column>
+                                <m:Column width="3rem" hAlign="Center"><m:Text text=""/></m:Column>
+                            </m:columns>
+                            <m:items>
+                                <m:ColumnListItem type="Inactive">
+                                    <m:cells>
+                                        <m:Text text="{eventId}"/>
+                                        <!-- <m:Text text="{documentType}"/> -->
+                                        <m:Text text="{requestedOn}"/>
+                                        <m:Text text="{createdBy}"/>
+                                        <m:ObjectStatus text="{currentStatus}" state="{statusState}"/>
+                                        <m:Button icon="sap-icon://navigation-right-arrow" type="Transparent" press="onNavigateToDetails" tooltip="View Details"/>
+                                    </m:cells>
+                                </m:ColumnListItem>
+                            </m:items>
+                        </m:Table>
+                    </m:IconTabFilter>
+                    <m:IconTabFilter icon="sap-icon://decline" iconColor="Negative" text="Rejected" key="Rejected">
+                        <m:Table
+                            id="rejectedTable"
+                            items="{/rejectedList}"
+                            growing="true"
+                            mode="None"
+                            noDataText="No rejected NFAs found"
+                            sticky="ColumnHeaders,HeaderToolbar"
+                            class="nfaCreatorTable">
+                            <m:columns>
+                                <m:Column><m:Text text="NFA Refrence No."/></m:Column>
+                                <m:Column><m:Text text="Created On"/></m:Column>
+                                <m:Column><m:Text text="Created By"/></m:Column>
+                                <m:Column><m:Text text="Current Status"/></m:Column>
+                                <m:Column><m:Text text="Approval Levels"/></m:Column>
+                                <m:Column width="3rem" hAlign="Center"><m:Text text=""/></m:Column>
+                            </m:columns>
+                            <m:items>
+                                <m:ColumnListItem>
+                                    <m:cells>
+                                        <m:Text text="{eventId}"/>
+                                        <m:Text text="{requestedOn}"/>
+                                        <m:Text text="{createdBy}"/>
+                                        <m:ObjectStatus text="{currentStatus}" state="{statusState}"/>
+                                        <m:Button text="View Levels" type="Transparent" press="onViewLevels"/>
+                                        <m:Button icon="sap-icon://navigation-right-arrow" type="Transparent" press="onNavigateToDetails" tooltip="View Details"/>
+                                    </m:cells>
+                                </m:ColumnListItem>
+                            </m:items>
+                        </m:Table>
+                    </m:IconTabFilter>
+                </m:items>
+            </m:IconTabBar>
+        </f:content>
+    </f:DynamicPage>
+
+    <m:Dialog id="levelsDialog" title="Approval Levels" contentWidth="600px" contentHeight="520px" verticalScrolling="false" resizable="true">
+        <m:ScrollContainer height="100%" vertical="true" horizontal="false">
+            <m:VBox class="sapUiSmallMargin" items="{selectedItem>/versions}">
+                <m:VBox>
+                    <m:Title text="{selectedItem>versionLabel}" titleStyle="H4" level="H1" class="sapUiSmallMarginTop" textAlign="Center" width="100%"/>
+                    <m:VBox items="{selectedItem>phases}">
+                        <m:VBox class="sapUiSmallMarginBegin sapUiSmallMarginBottom">
+                            <m:Title text="{selectedItem>phaseLabel}" level="H5" class="sapUiTinyMarginTop sapUiTinyMarginBottom"/>
+                            <m:Table items="{selectedItem>rows}" noDataText="No approvers" showSeparators="Inner">
+                                <m:columns>
+                                    <m:Column width="4rem"><m:Text text="Sno"/></m:Column>
+                                    <m:Column><m:Text text="User ID"/></m:Column>
+                                    <m:Column><m:Text text="User Name"/></m:Column>
+                                    <m:Column width="8rem"><m:Text text="Status"/></m:Column>
+                                </m:columns>
+                                <m:items>
+                                    <m:ColumnListItem>
+                                        <m:cells>
+                                            <m:Text text="{selectedItem>level}"/>
+                                            <m:Text text="{selectedItem>sapId}"/>
+                                            <m:Text text="{selectedItem>sapName}"/>
+                                            <m:ObjectStatus text="{selectedItem>status}" state="{selectedItem>state}"/>
+                                        </m:cells>
+                                    </m:ColumnListItem>
+                                </m:items>
+                            </m:Table>
+                        </m:VBox>
+                    </m:VBox>
+                </m:VBox>
+            </m:VBox>
+        </m:ScrollContainer>
+        <m:beginButton>
+            <m:Button text="Close" press="onCloseLevelsDialog"/>
+        </m:beginButton>
+    </m:Dialog>
+
+</mvc:View>

@@ -1,0 +1,14 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+  <SelectDialog
+  id="prItemVH"
+  title="Select PR Items"
+  multiSelect="true"
+  items="{view>/PRItemsForVH}"
+  confirm="onPRItemVHConfirm">
+
+  <StandardListItem
+    title="{view>PrItem}"
+    description="{view>Material}" />
+</SelectDialog>
+
+</core:FragmentDefinition>

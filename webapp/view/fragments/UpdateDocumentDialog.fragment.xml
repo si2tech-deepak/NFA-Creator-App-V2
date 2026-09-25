@@ -1,0 +1,54 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:l="sap.ui.layout"
+    xmlns:f="sap.ui.layout.form">
+
+    <Dialog id="updateDocumentDialog" title="Document Update - {updateDocModel>/NfaRefNo}"
+        contentWidth="520px" draggable="true"
+        busy="{updateDocModel>/busy}" busyIndicatorDelay="0">
+
+        <VBox class="sapUiMediumMargin">
+
+            <f:SimpleForm editable="false" layout="ResponsiveGridLayout"
+                labelSpanL="5" labelSpanM="5" emptySpanL="1" emptySpanM="1"
+                columnsL="1" columnsM="1">
+                <f:content>
+                    <Label text="NFA Reference No"/>
+                    <Text text="{updateDocModel>/NfaRefNo}"/>
+
+                    <Label text="Document Type"/>
+                    <Text text="{updateDocModel>/DocumentType} - {updateDocModel>/DocTypeDesc}"/>
+                </f:content>
+            </f:SimpleForm>
+
+            <Title text="Already Created Document Numbers" titleStyle="H6" class="sapUiSmallMarginTop sapUiSmallMarginBottom"/>
+
+            <Table items="{updateDocModel>/documents}" noDataText="No document numbers found">
+                <columns>
+                    <Column width="50%"><Text text="Document Category"/></Column>
+                    <Column width="50%"><Text text="Document Number"/></Column>
+                </columns>
+                <items>
+                    <ColumnListItem>
+                        <cells>
+                            <Text text="{updateDocModel>label}"/>
+                            <Text text="{updateDocModel>value}"/>
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+
+        </VBox>
+
+        <beginButton>
+            <Button text="Update" type="Emphasized" icon="sap-icon://refresh"
+                press="onConfirmUpdateDocument"
+                enabled="{= !${updateDocModel>/busy} }"/>
+        </beginButton>
+        <endButton>
+            <Button text="Cancel" press="onCloseUpdateDocument"/>
+        </endButton>
+    </Dialog>
+
+</core:FragmentDefinition>

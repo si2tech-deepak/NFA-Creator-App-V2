@@ -1,0 +1,18 @@
+<core:FragmentDefinition
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core">
+
+  <SelectDialog
+    title="Select Contract Type"
+    items="{view>/ContractTypes}"
+    confirm="onContractTypeVHConfirm"
+    search="onContractTypeVHSearch">
+
+    <StandardListItem
+      title="{view>ContractType}"
+      description="{view>Description}"
+      type="Active"/>
+
+  </SelectDialog>
+
+</core:FragmentDefinition>
