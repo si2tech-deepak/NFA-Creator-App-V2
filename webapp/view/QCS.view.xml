@@ -276,7 +276,7 @@
         </table:template>
       </table:Column>
 
-      <!-- Unit LPP -->
+      <!-- Unit LPP 
       <table:Column width="80px" hAlign="End">
         <Label text="Unit LPP" textAlign="Center" width="100%"/>
         <table:template>
@@ -285,6 +285,34 @@
               visible="{= !${view>IsManual} || parseFloat(${view>UnitLpp}) > 0 }"
               text="{view>UnitLpp}"
               textAlign="End"/>
+            <Input
+              visible="{= ${view>IsManual} &amp;&amp; !(parseFloat(${view>UnitLpp}) > 0) }"
+              value="{view>UnitLpp}"
+              type="Number"
+              textAlign="End"
+              width="100%"
+              change="onManualLppChange"/>
+          </HBox>
+        </table:template>
+      </table:Column> -->
+
+      <!-- Unit LPP (+ source PO info) -->
+      <table:Column width="110px" hAlign="End">
+        <Label text="Unit LPP" textAlign="Center" width="100%"/>
+        <table:template>
+          <HBox visible="{= ${view>NodeType} === 'ITEM' }" justifyContent="End" alignItems="Center" width="100%">
+            <Text
+              visible="{= !${view>IsManual} || parseFloat(${view>UnitLpp}) > 0 }"
+              text="{view>UnitLpp}"
+              textAlign="End"/>
+            <core:Icon
+              xmlns:core="sap.ui.core"
+              src="sap-icon://hint"
+              visible="{= !${view>/isAribaMode} &amp;&amp; !!${view>Material} &amp;&amp; parseFloat(${view>UnitLpp}) > 0 }"
+              press="onLppInfoPress"
+              tooltip="Show the PO this Unit LPP comes from"
+              decorative="false"
+              class="sapUiTinyMarginBegin"/>
             <Input
               visible="{= ${view>IsManual} &amp;&amp; !(parseFloat(${view>UnitLpp}) > 0) }"
               value="{view>UnitLpp}"

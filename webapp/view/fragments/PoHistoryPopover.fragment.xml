@@ -1,0 +1,70 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+    <ResponsivePopover
+        id="poHistoryPopover"
+        title="{po>/title}"
+        placement="Auto"
+        contentWidth="{= ${po>/mode} === 'LPP' ? '30rem' : '52rem' }"
+        horizontalScrolling="false">
+        <content>
+            <VBox class="sapUiSmallMargin" busy="{po>/busy}" busyIndicatorDelay="0">
+                <Text text="{po>/subtitle}" class="sapUiTinyMarginBottom"/>
+                <MessageStrip
+                    text="{po>/note}"
+                    type="{po>/noteType}"
+                    showIcon="true"
+                    visible="{= !!${po>/note} }"
+                    class="sapUiSmallMarginBottom"/>
+
+                <!-- Unit LPP: the single source PO -->
+                <VBox visible="{= ${po>/mode} === 'LPP' &amp;&amp; !!${po>/po} }" class="sapUiTinyMarginTop">
+                    <HBox class="sapUiTinyMarginBottom">
+                        <Label text="PO / Item" width="7rem"/>
+                        <Text text="{po>/po/poText}"/>
+                    </HBox>
+                    <HBox class="sapUiTinyMarginBottom">
+                        <Label text="PO Date" width="7rem"/>
+                        <Text text="{po>/po/dateText}"/>
+                    </HBox>
+                    <HBox class="sapUiTinyMarginBottom">
+                        <Label text="Vendor" width="7rem"/>
+                        <Text text="{po>/po/vendorText}"/>
+                    </HBox>
+                    <HBox class="sapUiTinyMarginBottom" alignItems="Center">
+                        <Label text="Net Price" width="7rem"/>
+                        <ObjectNumber number="{po>/po/priceText}" unit="{po>/po/priceUnitText}"/>
+                    </HBox>
+                </VBox>
+
+                <!-- Negotiated Price: last 10 POs for material + vendor + plant, newest first -->
+                <Table
+                    visible="{= ${po>/mode} === 'VENDOR' }"
+                    items="{po>/rows}"
+                    noDataText="{po>/noData}">
+                    <columns>
+                        <Column width="9rem"><Text text="PO / Item"/></Column>
+                        <Column width="6.5rem"><Text text="PO Date"/></Column>
+                        <Column><Text text="Vendor"/></Column>
+                        <Column width="10rem" hAlign="End"><Text text="Net Price"/></Column>
+                        <Column width="8rem" hAlign="End"><Text text="PO Qty"/></Column>
+                    </columns>
+                    <items>
+                        <ColumnListItem>
+                            <cells>
+                                <Text text="{po>poText}" wrapping="false"/>
+                                <Text text="{po>dateText}" wrapping="false"/>
+                                <ObjectIdentifier title="{po>VendorName}" text="{po>vendorNoText}"/>
+                                <ObjectNumber number="{po>priceText}" unit="{po>priceUnitText}"/>
+                                <ObjectNumber number="{po>qtyText}" unit="{po>Uom}" emphasized="false"/>
+                            </cells>
+                        </ColumnListItem>
+                    </items>
+                </Table>
+            </VBox>
+        </content>
+        <endButton>
+            <Button text="Close" press="onPoHistoryClose"/>
+        </endButton>
+    </ResponsivePopover>
+</core:FragmentDefinition>

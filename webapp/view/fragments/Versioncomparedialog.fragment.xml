@@ -1,0 +1,141 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:f="sap.f"
+    xmlns:table="sap.ui.table"
+    xmlns:rowmodes="sap.ui.table.rowmodes">
+    <Dialog
+        id="versionCompareDialog"
+        title="{vcModel>/title}"
+        contentWidth="96%"
+        contentHeight="88%"
+        resizable="true"
+        draggable="true"
+        verticalScrolling="false">
+        <content>
+            <VBox height="100%" renderType="Bare">
+
+                <!-- Toolbar: version picker, view filter, expand/collapse, export -->
+                <OverflowToolbar style="Clear">
+                    <Label text="Versions" labelFor="vcVersionSelect" showColon="true"/>
+                    <MultiComboBox
+                        id="vcVersionSelect"
+                        width="22rem"
+                        items="{vcModel>/availableVersions}"
+                        selectionFinish="onVcVersionsChange">
+                        <core:Item key="{vcModel>key}" text="{vcModel>text}"/>
+                    </MultiComboBox>
+                    <ToolbarSpacer/>
+                    <SegmentedButton selectedKey="{vcModel>/viewMode}" selectionChange="onVcFilterChange">
+                        <items>
+                            <SegmentedButtonItem key="all" text="All lines"/>
+                            <SegmentedButtonItem key="changed" text="Changed only"/>
+                        </items>
+                    </SegmentedButton>
+                    <ToolbarSeparator/>
+                    <Button icon="sap-icon://expand-group" tooltip="Expand all" press="onVcExpandAll"/>
+                    <Button icon="sap-icon://collapse-group" tooltip="Collapse all" press="onVcCollapseAll"/>
+                    <Button icon="sap-icon://excel-attachment" tooltip="Export to Excel" press="onVcExport"/>
+                </OverflowToolbar>
+
+                <!-- Version summary strip: one card per version with its PO amount and the change vs the previous one -->
+                <HBox items="{vcModel>/cards}" wrap="Wrap" renderType="Bare" class="sapUiSmallMarginBegin sapUiTinyMarginBottom">
+                    <!-- Start: added by SI2 Tech - each version in its own sap.f.Card (xmlns:f="sap.f" added on the root element) -->
+                    <f:Card width="16rem" class="sapUiSmallMarginEnd sapUiSmallMarginTop">
+                        <f:content>
+                            <VBox renderType="Bare" class="sapUiSmallMargin">
+                    <!-- End: added by SI2 Tech -->
+                                <Label text="{vcModel>label}" design="Bold"/>
+                                <!-- Start: added by SI2 Tech -->
+                                <Text text="PO Amount (Net Landed Cost)"/>
+                                <!-- End: added by SI2 Tech -->
+                                <ObjectNumber
+                                    number="{vcModel>poAmtText}"
+                                    unit="INR"
+                                    emphasized="true"
+                                    tooltip="PO amount on the approval form of this version"/>
+                                <!-- Start: added by SI2 Tech -->
+                                <Text
+                                    text="{vcModel>splitText}"
+                                    wrapping="true"
+                                    tooltip="Basic = Σ Qty × Negotiated Price (same as Grand Total in the table). Charges &amp; GST = P&amp;F + Freight + Insurance + GST from the QCS summary."/>
+                                <!-- End: added by SI2 Tech -->
+                                <Text text="{vcModel>poNosText}" tooltip="Purchase order(s) of this version" wrapping="true"/>
+                                <ObjectStatus text="{vcModel>deltaText}" state="{vcModel>deltaState}" icon="{vcModel>deltaIcon}"/>
+                                <ObjectStatus text="{vcModel>deltaOrigText}" state="{vcModel>deltaOrigState}" visible="{= !!${vcModel>deltaOrigText} }"/>
+                    <!-- Start: added by SI2 Tech - closes VBox / f:content / f:Card -->
+                            </VBox>
+                        </f:content>
+                    </f:Card>
+                    <!-- End: added by SI2 Tech -->
+                </HBox>
+
+                <!-- PR -> line items, same interaction as the QCS vendor comparison -->
+                <table:TreeTable
+                    id="vcTable"
+                    rows="{path: 'vcModel>/tree', parameters: {arrayNames: ['children'], numberOfExpandedLevels: 1}}"
+                    selectionMode="None"
+                    fixedColumnCount="3"
+                    enableColumnReordering="false"
+                    noData="No ordered lines found for the selected versions.">
+                    <table:layoutData>
+                        <FlexItemData growFactor="1" baseSize="0%"/>
+                    </table:layoutData>
+                    <table:rowMode>
+                        <rowmodes:Auto minRowCount="5" rowContentHeight="32"/>
+                    </table:rowMode>
+                    <table:rowSettingsTemplate>
+                        <table:RowSettings highlight="{vcModel>highlight}"/>
+                    </table:rowSettingsTemplate>
+                    <table:columns>
+                        <table:Column width="17rem">
+                            <table:multiLabels>
+                                <Label text="PR No. / Item" textAlign="Center" width="100%"/>
+                            </table:multiLabels>
+                            <table:template>
+                                <Label
+                                    text="{vcModel>label}"
+                                    tooltip="{vcModel>label}"
+                                    design="{= ${vcModel>NodeType} === 'ITEM' ? 'Standard' : 'Bold' }"
+                                    wrapping="false"/>
+                            </table:template>
+                        </table:Column>
+                        <table:Column width="11rem">
+                            <table:multiLabels>
+                                <Label text="Vendor" textAlign="Center" width="100%"/>
+                            </table:multiLabels>
+                            <table:template>
+                                <Text text="{vcModel>VendorName}" tooltip="{vcModel>VendorName}" wrapping="false"/>
+                            </table:template>
+                        </table:Column>
+                        <table:Column width="10rem" hAlign="Center">
+                            <table:multiLabels>
+                                <Label text="Change" textAlign="Center" width="100%"/>
+                            </table:multiLabels>
+                            <table:template>
+                                <ObjectStatus text="{vcModel>statusText}" tooltip="{vcModel>statusText}" state="{vcModel>statusState}" icon="{vcModel>statusIcon}"/>
+                            </table:template>
+                        </table:Column>
+                        <table:Column width="8rem">
+                            <table:multiLabels>
+                                <Label text="Item Code" textAlign="Center" width="100%"/>
+                            </table:multiLabels>
+                            <table:template>
+                                <Text text="{vcModel>Material}" wrapping="false"/>
+                            </table:template>
+                        </table:Column>
+                        <!-- Version groups (Qty | Unit Rate | Total | Δ) are added by the controller -->
+                    </table:columns>
+                </table:TreeTable>
+            </VBox>
+        </content>
+        <buttons>
+            <Button
+                text="Download Form"
+                type="Emphasized"
+                press="onVcDownloadFormPress"
+                enabled="{= ${vcModel>/cards}.length > 1 }"/>
+            <Button text="Close" press="onVcClose"/>
+        </buttons>
+    </Dialog>
+</core:FragmentDefinition>

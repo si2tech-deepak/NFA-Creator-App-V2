@@ -235,10 +235,23 @@
                                     <grid:label><Label text="Rem. QTY" textAlign="Center" width="100%"/></grid:label>
                                     <grid:template><Text text="{viewModel>RemainingQty}" visible="{= ${viewModel>NodeType} === 'ITEM' }" textAlign="End"/></grid:template>
                                 </grid:Column>
-                                <grid:Column width="80px" hAlign="End">
+                                <!-- Start: added by SI2 Tech - Unit LPP (+ source PO info), width 80px -> 110px to fit the icon -->
+                                <grid:Column width="110px" hAlign="End">
                                     <grid:label><Label text="Unit LPP" textAlign="Center" width="100%"/></grid:label>
-                                    <grid:template><Text text="{viewModel>UnitLpp}" visible="{= ${viewModel>NodeType} === 'ITEM' }" textAlign="End"/></grid:template>
+                                    <grid:template>
+                                        <HBox visible="{= ${viewModel>NodeType} === 'ITEM' }" justifyContent="End" alignItems="Center" width="100%">
+                                            <Text text="{viewModel>UnitLpp}" textAlign="End"/>
+                                            <core:Icon
+                                                src="sap-icon://hint"
+                                                visible="{= !${viewModel>/header/AribaDocNo} &amp;&amp; !!${viewModel>Material} &amp;&amp; parseFloat(${viewModel>UnitLpp}) > 0 }"
+                                                press="onVhLppInfoPress"
+                                                tooltip="Show the PO this Unit LPP comes from"
+                                                decorative="false"
+                                                class="sapUiTinyMarginBegin"/>
+                                        </HBox>
+                                    </grid:template>
                                 </grid:Column>
+                                <!-- End: added by SI2 Tech -->
                                 <!-- Vendor columns added dynamically by _buildVersionQcsColumns -->
                             </grid:columns>
                         </grid:TreeTable>

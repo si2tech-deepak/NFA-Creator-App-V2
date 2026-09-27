@@ -19,11 +19,18 @@
             showFooter="true">
 
             <!-- ================= HEADER ================= -->
-            <uxap:headerTitle >
-                <uxap:ObjectPageHeader 
-                    objectTitle="{viewModel>/pageTitle}"
-                    objectSubtitle="{= ${viewModel>/nfaVersion} ? 'Version ' + ${viewModel>/nfaVersion} : '' }">
-                    
+            <!-- Changes made by SI2 Tech. On 24.09.2026 -->
+            <uxap:headerTitle>
+                <uxap:ObjectPageDynamicHeaderTitle>
+                    <uxap:heading>
+                        <Title text="{viewModel>/pageTitle}" titleStyle="H3" wrapping="true"/>
+                    </uxap:heading>
+                    <uxap:expandedContent>
+                        <Text text="{= ${viewModel>/nfaVersion} ? 'Version ' + ${viewModel>/nfaVersion} : '' }"/>
+                    </uxap:expandedContent>
+                    <uxap:snappedContent>
+                        <Text text="{= ${viewModel>/nfaVersion} ? 'Version ' + ${viewModel>/nfaVersion} : '' }"/>
+                    </uxap:snappedContent>
 
                     <uxap:actions>
                         <Button
@@ -55,17 +62,37 @@
                             icon="sap-icon://history"
                             type="Neutral"
                             press="onVersionHistoryPress"
-                            visible="{= !!${viewModel>/header/NfaRefNo} }"/>
+                            visible="{= !!${viewModel>/header/NfaRefNo} }">
+                            <layoutData>
+                                <OverflowToolbarLayoutData priority="NeverOverflow"/>
+                            </layoutData>
+                        </Button>
 
+                        <!-- Version Comparison Button -->
+                        <Button
+                            text="Version Comparison"
+                            icon="sap-icon://compare"
+                            type="Neutral"
+                            press="onVersionComparePress"
+                            visible="{= ${viewModel>/nfaVersion} > 1 }">
+                            <layoutData>
+                                <OverflowToolbarLayoutData priority="NeverOverflow"/>
+                            </layoutData>
+                        </Button>
+                    </uxap:actions>
+
+                    <uxap:navigationActions>
                         <Button
                             icon="sap-icon://nav-back"
                             text="Back"
+                            type="Transparent"
                             press="onBack"/>
-
-                        
-                    </uxap:actions>
-                </uxap:ObjectPageHeader>
+                    </uxap:navigationActions>
+                </uxap:ObjectPageDynamicHeaderTitle>
             </uxap:headerTitle>
+            <!-- Changes made by SI2 Tech. On 24.09.2026 -->
+
+
             <!-- <uxap:headerContent>
                 <layout:Grid
                     defaultSpan="XL4 L4 M6 S12"

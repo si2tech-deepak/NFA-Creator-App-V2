@@ -15,11 +15,16 @@ sap.ui.define([
   "sap/ui/model/FilterOperator",
   "sap/m/DatePicker",
   "sap/ui/comp/filterbar/FilterBar",
-  "sap/ui/comp/filterbar/FilterGroupItem"
-], function (Controller, JSONModel, Fragment, Column, Label, Input, MessageBox, ValueHelpDialog, UITableColumn, MColumn, ColumnListItem, Text, Filter, FilterOperator, DatePicker, FilterBar, FilterGroupItem) {
+  "sap/ui/comp/filterbar/FilterGroupItem",
+  // Start: added by SI2 Tech - PO info popover (Unit LPP ⓘ)
+  "com/df/nfa/creator_v2/controller/mixin/PoHistory"
+  // End: added by SI2 Tech
+], function (Controller, JSONModel, Fragment, Column, Label, Input, MessageBox, ValueHelpDialog, UITableColumn, MColumn, ColumnListItem, Text, Filter, FilterOperator, DatePicker, FilterBar, FilterGroupItem, PoHistory) { // PoHistory: added by SI2 Tech
   "use strict";
 
-  return Controller.extend("com.df.nfa.creator_v2.controller.QCS", {
+  // Start: added by SI2 Tech - PoHistory mixed in via Object.assign (closed at the end of the file)
+  return Controller.extend("com.df.nfa.creator_v2.controller.QCS", Object.assign({}, PoHistory, {
+  // End: added by SI2 Tech
 
     // onInit: function () {
 
@@ -4893,6 +4898,8 @@ onOpenQCSForm: function () {
   });
 },
 
-  });
+  // Start: added by SI2 Tech - closes Object.assign({}, PoHistory, { ... })
+  }));
+  // End: added by SI2 Tech
 });
  
