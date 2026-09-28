@@ -651,6 +651,15 @@ sap.ui.define(
             var fDelta = fnRound((cur ? cur.total : 0) - (prev ? prev.total : 0));
             oItem["d" + i] = (cur || prev) ? fDelta : null;
             oItem["ds" + i] = fnDeltaState(fDelta);
+            // Start: added by SI2 Tech - qty / rate change columns
+            // Qty change: also for added / removed lines (from / to 0). Rate change: only when the line is in both versions.
+            var fDq = fnRound((cur ? cur.qty : 0) - (prev ? prev.qty : 0));
+            oItem["dq" + i] = (cur || prev) ? fDq : null;
+            oItem["dqs" + i] = Math.abs(fDq) > EPS ? "Information" : "None";
+            var fDr = (cur && prev) ? fnRound(cur.rate - prev.rate) : null;
+            oItem["dr" + i] = fDr;
+            oItem["drs" + i] = fnDeltaState(fDr || 0);
+            // End: added by SI2 Tech
             var sWas = "V" + aVer[i - 1] + ": ";
             if (cur && !prev) {
               oItem["qs" + i] = oItem["rs" + i] = oItem["ts" + i] = oItem["ps" + i] = "Success";
@@ -683,6 +692,13 @@ sap.ui.define(
             var fOrig = fnRound((oN ? oN.total : 0) - (o0 ? o0.total : 0));
             oItem.dO = (o0 || oN) ? fOrig : null;
             oItem.dOs = fnDeltaState(fOrig);
+            // Start: added by SI2 Tech - qty / rate change columns
+            var fDqO = fnRound((oN ? oN.qty : 0) - (o0 ? o0.qty : 0));
+            oItem.dqO = (o0 || oN) ? fDqO : null;
+            oItem.dqOs = Math.abs(fDqO) > EPS ? "Information" : "None";
+            oItem.drO = (o0 && oN) ? fnRound(oN.rate - o0.rate) : null;
+            oItem.drOs = fnDeltaState(oItem.drO || 0);
+            // End: added by SI2 Tech
           }
 
           // Status shown in the "Change" column (replaces the colour legend)
@@ -834,16 +850,27 @@ sap.ui.define(
             { label: "Unit Rate", tip: "Negotiated price per unit", val: "r" + i, state: "rs" + i, prev: "rp" + i, fmt: fnFmt },
             { label: "Total", tip: "Qty × Unit Rate", val: "t" + i, state: "ts" + i, prev: "tp" + i, fmt: fnFmt }
           ];
+          // Start: added by SI2 Tech - qty / rate change columns
+          // Change columns in words (no symbols): Qty change / Rate change / Total change vs the compared version
           if (i > 0) {
-            aCols.push({ label: "Δ vs V" + aVersionNums[i - 1], tip: "Change in Total vs V" + aVersionNums[i - 1],
+            var sPrevV = "V" + aVersionNums[i - 1];
+            aCols.push({ label: "Qty change vs " + sPrevV, tip: "Quantity in V" + iVer + " minus quantity in " + sPrevV,
+                         val: "dq" + i, state: "dqs" + i, fmt: fnFmtDelta, delta: true, unit: true });
+            aCols.push({ label: "Rate change vs " + sPrevV, tip: "Unit rate in V" + iVer + " minus unit rate in " + sPrevV,
+                         val: "dr" + i, state: "drs" + i, fmt: fnFmtDelta, delta: true });
+            aCols.push({ label: "Total change vs " + sPrevV, tip: "Total (Qty × Unit Rate) in V" + iVer + " minus total in " + sPrevV,
                          val: "d" + i, state: "ds" + i, fmt: fnFmtDelta, delta: true });
           }
           if (i === n - 1 && n > 2) {
-            // Start: added by SI2 Tech - "original" renamed to "original scope" in the tooltip
-            aCols.push({ label: "Δ vs V" + aVersionNums[0], tip: "Change in Total vs the original scope (V" + aVersionNums[0] + ")",
+            var sOrigV = "V" + aVersionNums[0];
+            aCols.push({ label: "Qty change vs " + sOrigV, tip: "Quantity in V" + iVer + " minus quantity in " + sOrigV + " (original scope)",
+                         val: "dqO", state: "dqOs", fmt: fnFmtDelta, delta: true, unit: true });
+            aCols.push({ label: "Rate change vs " + sOrigV, tip: "Unit rate in V" + iVer + " minus unit rate in " + sOrigV + " (original scope)",
+                         val: "drO", state: "drOs", fmt: fnFmtDelta, delta: true });
+            aCols.push({ label: "Total change vs " + sOrigV, tip: "Total in V" + iVer + " minus total in " + sOrigV + " (original scope)",
                          val: "dO", state: "dOs", fmt: fnFmtDelta, delta: true });
-            // End: added by SI2 Tech
           }
+          // End: added by SI2 Tech
 
           aCols.forEach(function (c, j) {
             if (c.text) {
@@ -878,7 +905,7 @@ sap.ui.define(
               };
             }
             var mSettings = {
-              width: c.delta ? "8.5rem" : (c.unit ? "8.5rem" : "8rem"),
+              width: c.delta ? "10rem" : (c.unit ? "8.5rem" : "8rem"), // SI2 Tech: wider for the worded change headers
               hAlign: "End",
               multiLabels: [
                 new sap.m.Label({ text: that._vcVersionLabel(iVer), textAlign: "Center", width: "100%", design: "Bold" }),
@@ -935,9 +962,22 @@ sap.ui.define(
           aCols.push({ label: sV + " Qty", property: "q" + i, type: "Number", scale: 3 });
           aCols.push({ label: sV + " Unit Rate", property: "r" + i, type: "Number", scale: 2 });
           aCols.push({ label: sV + " Total", property: "t" + i, type: "Number", scale: 2 });
-          if (i > 0) { aCols.push({ label: "Δ " + sV + " vs V" + aNums[i - 1], property: "d" + i, type: "Number", scale: 2 }); }
+          // Start: added by SI2 Tech - qty / rate change columns
+          if (i > 0) {
+            aCols.push({ label: sV + " Qty change vs V" + aNums[i - 1], property: "dq" + i, type: "Number", scale: 3 });
+            aCols.push({ label: sV + " Rate change vs V" + aNums[i - 1], property: "dr" + i, type: "Number", scale: 2 });
+            aCols.push({ label: sV + " Total change vs V" + aNums[i - 1], property: "d" + i, type: "Number", scale: 2 });
+          }
+          // End: added by SI2 Tech
         });
-        if (n > 2) { aCols.push({ label: "Δ V" + aNums[n - 1] + " vs V" + aNums[0], property: "dO", type: "Number", scale: 2 }); }
+        // Start: added by SI2 Tech - qty / rate change columns
+        if (n > 2) {
+          var sL = "V" + aNums[n - 1], sF = "V" + aNums[0];
+          aCols.push({ label: sL + " Qty change vs " + sF, property: "dqO", type: "Number", scale: 3 });
+          aCols.push({ label: sL + " Rate change vs " + sF, property: "drO", type: "Number", scale: 2 });
+          aCols.push({ label: sL + " Total change vs " + sF, property: "dO", type: "Number", scale: 2 });
+        }
+        // End: added by SI2 Tech
 
         sap.ui.require(["sap/ui/export/Spreadsheet"], function (Spreadsheet) {
           new Spreadsheet({
@@ -1061,7 +1101,7 @@ sap.ui.define(
         var sVerSummary = "<div class='section'><div class='sec-title'>Version Summary</div><table class='data'><thead><tr>" +
           "<th>Version</th><th>Status</th><th>Created / Amended By</th><th>Date</th><th>Reason for Amendment</th><th>PO No.</th>" +
           // Start: added by SI2 Tech - header renamed to "PO Amount (Net Landed Cost)" + new "Charges & GST" column
-          "<th>Line Total (Qty &times; Rate)</th><th>PO Amount (Net Landed Cost)</th><th>Charges &amp; GST</th><th>&Delta; vs Previous</th><th>&Delta; vs V" + aVer[0] + "</th>" +
+          "<th>Line Total (Qty &times; Rate)</th><th>PO Amount (Net Landed Cost)</th><th>Charges &amp; GST</th><th>PO Amount change vs previous version</th><th>PO Amount change vs V" + aVer[0] + "</th>" + // SI2 Tech: worded headers
           // End: added by SI2 Tech
           "</tr></thead><tbody>" + sVerRows + "</tbody></table></div>";
 
@@ -1101,11 +1141,17 @@ sap.ui.define(
         // ---- 4. Line item comparison (same layout as the dialog) ----
         var aGroupCols = aVer.map(function (v, i) {
           var a = ["PO No.", "Qty", "Unit Rate", "Total"];
-          if (i > 0) { a.push("&Delta; vs V" + aVer[i - 1]); }
-          if (i === iLast && n > 2) { a.push("&Delta; vs V" + aVer[0]); }
+          // Start: added by SI2 Tech - qty / rate change columns
+          if (i > 0) {
+            a.push("Qty change vs V" + aVer[i - 1], "Rate change vs V" + aVer[i - 1], "Total change vs V" + aVer[i - 1]);
+          }
+          if (i === iLast && n > 2) {
+            a.push("Qty change vs V" + aVer[0], "Rate change vs V" + aVer[0], "Total change vs V" + aVer[0]);
+          }
+          // End: added by SI2 Tech
           return a;
         });
-        var sHead1 = "<tr><th rowspan='2'>PR No. / Item</th><th rowspan='2'>Item Code</th><th rowspan='2'>Vendor</th><th rowspan='2'>UoM</th><th rowspan='2'>Change</th>" +
+        var sHead1 = "<tr><th rowspan='2' class='c-item'>PR No. / Item</th><th rowspan='2'>Item Code</th><th rowspan='2' class='c-vendor'>Vendor</th><th rowspan='2'>UoM</th><th rowspan='2'>Change</th>" +
           aVer.map(function (v, i) { return "<th colspan='" + aGroupCols[i].length + "' class='grp'>" + fnEsc(that._vcVersionLabel(v)) + "</th>"; }).join("") + "</tr>";
         var sHead2 = "<tr>" + aGroupCols.map(function (a) { return a.map(function (h) { return "<th>" + h + "</th>"; }).join(""); }).join("") + "</tr>";
 
@@ -1118,8 +1164,19 @@ sap.ui.define(
             var sPo = x["p" + i] === "NA" ? "&ndash;" : fnEsc(x["p" + i] || "");
             var s = "<td class='" + (bItem ? (mStateCls[x["ps" + i]] || "") : "") + "'>" + sPo + "</td>" +
               fnCell("q" + i, "qs" + i) + fnCell("r" + i, "rs" + i) + fnCell("t" + i, "ts" + i);
-            if (i > 0) { s += "<td class='num'>" + fnDelta(x["d" + i]) + "</td>"; }
-            if (i === iLast && n > 2) { s += "<td class='num'>" + fnDelta(x.dO) + "</td>"; }
+            // Start: added by SI2 Tech - qty / rate change columns
+            var fnQty = function (v) { var t = fnDelta(v); return t && x.Uom ? t + " " + fnEsc(x.Uom) : t; };
+            if (i > 0) {
+              s += "<td class='num'>" + fnQty(x["dq" + i]) + "</td>" +
+                   "<td class='num'>" + fnDelta(x["dr" + i]) + "</td>" +
+                   "<td class='num'>" + fnDelta(x["d" + i]) + "</td>";
+            }
+            if (i === iLast && n > 2) {
+              s += "<td class='num'>" + fnQty(x.dqO) + "</td>" +
+                   "<td class='num'>" + fnDelta(x.drO) + "</td>" +
+                   "<td class='num'>" + fnDelta(x.dO) + "</td>";
+            }
+            // End: added by SI2 Tech
             return s;
           }).join("");
         };
@@ -1139,7 +1196,7 @@ sap.ui.define(
         var sLines = "<div class='section'><div class='sec-title'>Line Item Comparison</div>" +
           "<div class='note'>Qty = ordered (split) quantity &middot; Unit Rate = negotiated price &middot; Total = Qty &times; Unit Rate &middot; " +
           "<span class='tag chg'>changed vs previous version</span> <span class='tag new'>added</span> <span class='tag rem'>removed</span> &middot; &ndash; = line not in that version</div>" +
-          "<table class='data qcs-table" + (n > 4 ? " dense" : "") + "'><thead>" + sHead1 + sHead2 + "</thead><tbody>" + aRows.join("") + "</tbody></table></div>";
+          "<table class='data qcs-table" + (aGroupCols.reduce(function (s, a) { return s + a.length; }, 0) > 14 ? " dense" : "") + "'><thead>" + sHead1 + sHead2 + "</thead><tbody>" + aRows.join("") + "</tbody></table></div>";
 
         // ---- 5. Approval history of the compared versions ----
         var mVer = {};
@@ -1191,6 +1248,8 @@ sap.ui.define(
           ".data .grp { background: #BCD6EE; }",
           ".qcs-table thead th, .qcs-table tbody td { font-size: 10px; padding: 5px; }",
           ".qcs-table.dense thead th, .qcs-table.dense tbody td { font-size: 8px; padding: 3px; }",
+          ".qcs-table th.c-item { min-width: 120px; } .qcs-table th.c-vendor { min-width: 80px; }", // SI2 Tech: keep text columns readable
+          ".qcs-table td.wrap { word-break: normal; overflow-wrap: break-word; }",
           ".qcs-table .pr-row td { background: #1A6496; color: #FFF; font-weight: bold; font-size: 11px; }",
           ".qcs-table .pr-row .up, .qcs-table .pr-row .down { color: #FFF; }",
           ".qcs-table .sum-row td { background: #E8F4E8; font-weight: bold; }",
@@ -1842,12 +1901,37 @@ sap.ui.define(
           new Filter("NetPrice", FilterOperator.EQ, String(fLpp))
         ], oItem);
       },
+
+      // Negotiated Price ⓘ in the version history QCS table - last 10 POs for material + vendor + plant
+      // (same popover and backend query as the QCS page; rows are bound to "viewModel")
+      onVhNegPriceInfoPress: function (oVendor, oEvent) {
+        var oSource = oEvent.getSource();
+        var oItem = oSource.getBindingContext("viewModel").getObject();
+        var sNfaRefNo = this.getView().getModel("viewModel").getProperty("/versionView/NfaRefNo") ||
+                        this.getView().getModel("viewModel").getProperty("/header/NfaRefNo") || "";
+        var aFilters = [
+          new Filter("QueryType", FilterOperator.EQ, "VENDOR"),
+          new Filter("Material", FilterOperator.EQ, oItem.Material || ""),
+          new Filter("Plant", FilterOperator.EQ, oItem.Plant || ""),
+          new Filter("VendorNo", FilterOperator.EQ, oVendor.VendorNo || "")
+        ];
+        if (sNfaRefNo) {
+          aFilters.push(new Filter("NfaRefNo", FilterOperator.EQ, sNfaRefNo));
+        }
+        this._openPoHistory(oSource, {
+          mode: "VENDOR",
+          title: "Last POs – " + (oVendor.VendorName || oVendor.VendorNo),
+          subtitle: "Item " + (oItem.Material || "") + " – " + (oItem.MaterialDesc || "") +
+            " · Plant " + (oItem.Plant || "") + " · Vendor " + this._poStrip(oVendor.VendorNo)
+        }, aFilters, oItem);
+      },
       // End: added by SI2 Tech
 
       // Adds read-only vendor columns to the version history QCS TreeTable
       _buildVersionQcsColumns: function (aVendors) {
         var oTable = this.byId("versionQcsTreeTable");
         if (!oTable) { return; }
+        var that = this; // SI2 Tech: needed for the Negotiated Price info button handler
 
         // Remove previously added dynamic columns (keep first 7 fixed)
         var iFixed = 7;
@@ -1880,7 +1964,7 @@ sap.ui.define(
 
           // Negotiated Price
           oTable.addColumn(new sap.ui.table.Column({
-            width: "110px", hAlign: "End",
+            width: "150px", hAlign: "End", // SI2 Tech: 110px -> 150px for the info button
             multiLabels: [
               new sap.m.Label({ text: "" }),
               new sap.m.Label({ text: "Negotiated Price", textAlign: "Center" })
@@ -1888,11 +1972,26 @@ sap.ui.define(
             template: new sap.m.VBox({
               width: "100%", alignItems: "End",
               items: [
-                new sap.m.Text({
-                  text: { path: "viewModel>v" + idx + "NegPrice", formatter: formatINR },
+                // Start: added by SI2 Tech - item-row price + info button (last 10 POs for material + vendor + plant)
+                new sap.m.HBox({
+                  justifyContent: "End",
+                  alignItems: "Center",
                   visible: "{= ${viewModel>NodeType} === 'ITEM' }",
-                  textAlign: "End"
+                  items: [
+                    new sap.m.Text({
+                      text: { path: "viewModel>v" + idx + "NegPrice", formatter: formatINR },
+                      textAlign: "End"
+                    }),
+                    new sap.m.Button({
+                      icon: "sap-icon://hint",
+                      type: "Transparent",
+                      tooltip: "Last 10 POs for this material and plant from " + (v.VendorName || "this vendor"),
+                      visible: "{= !!${viewModel>Material} && !!${viewModel>Plant} }",
+                      press: that.onVhNegPriceInfoPress.bind(that, v)
+                    })
+                  ]
                 }),
+                // End: added by SI2 Tech
                 new sap.m.Text({
                   text: "{viewModel>v" + idx + "NegPrice}",
                   visible: "{= ${viewModel>NodeType} === 'SUMMARY' && ${viewModel>Label} !== 'Basic Amount Total' && ${viewModel>Label} !== 'Total Basic' && ${viewModel>Label} !== 'Net Landed Cost (Rs)' && ${viewModel>Label} !== 'Commercial Rating' && ${viewModel>Label} !== 'Loading Comments' && ${viewModel>Label} !== 'Delivery Date' && ${viewModel>Label} !== 'Payment Terms' && ${viewModel>Label} !== 'Total Amt with Comm. Loading' }",

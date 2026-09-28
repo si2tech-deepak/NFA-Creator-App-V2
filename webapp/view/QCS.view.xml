@@ -297,22 +297,30 @@
       </table:Column> -->
 
       <!-- Unit LPP (+ source PO info) -->
-      <table:Column width="110px" hAlign="End">
+      <!-- SI2 Tech: 110px -> 140px; the value may shrink (ellipsis + tooltip), the info button never does -->
+      <table:Column width="140px" hAlign="End">
         <Label text="Unit LPP" textAlign="Center" width="100%"/>
         <table:template>
           <HBox visible="{= ${view>NodeType} === 'ITEM' }" justifyContent="End" alignItems="Center" width="100%">
             <Text
               visible="{= !${view>IsManual} || parseFloat(${view>UnitLpp}) > 0 }"
               text="{view>UnitLpp}"
-              textAlign="End"/>
-            <core:Icon
-              xmlns:core="sap.ui.core"
-              src="sap-icon://hint"
-              visible="{= !${view>/isAribaMode} &amp;&amp; !!${view>Material} &amp;&amp; parseFloat(${view>UnitLpp}) > 0 }"
+              tooltip="{view>UnitLpp}"
+              wrapping="false"
+              textAlign="End">
+              <layoutData><FlexItemData shrinkFactor="1" minWidth="0"/></layoutData>
+            </Text>
+            <!-- Start: added by SI2 Tech - info button (sap.m.Button, same control as the row delete button) -->
+            <!-- SI2 Tech: Ariba check removed - the button is shown for Ariba NFAs as well -->
+            <Button
+              icon="sap-icon://hint"
+              type="Transparent"
+              visible="{= !!${view>Material} &amp;&amp; parseFloat(${view>UnitLpp}) > 0 }"
               press="onLppInfoPress"
-              tooltip="Show the PO this Unit LPP comes from"
-              decorative="false"
-              class="sapUiTinyMarginBegin"/>
+              tooltip="Show the PO this Unit LPP comes from">
+              <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+            </Button>
+            <!-- End: added by SI2 Tech -->
             <Input
               visible="{= ${view>IsManual} &amp;&amp; !(parseFloat(${view>UnitLpp}) > 0) }"
               value="{view>UnitLpp}"
@@ -346,4 +354,3 @@
   </footer>
 </Page>
 </mvc:View>
- 

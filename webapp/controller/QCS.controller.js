@@ -1661,7 +1661,7 @@ _addVendorColumns: function () {
 
     // Negotiated Price
     oTable.addColumn(new Column({
-      width: "100px",
+      width: "135px", // SI2 Tech: 100px -> 135px for the info button
       hAlign: "End",
       multiLabels: [
         new Label({ text: "" }),
@@ -1672,13 +1672,23 @@ _addVendorColumns: function () {
         width: "100%",
         alignItems: "End",
         items: [
-          new Input({
-            value: `{view>v${v.VendorIndex}NegPrice}`,
+          // Start: added by SI2 Tech - item-row Input + info button (last 10 POs for material + vendor + plant)
+          new sap.m.HBox({
+            width: "100%",
+            alignItems: "Center",
             visible: "{= ${view>NodeType} === 'ITEM' }",
-            editable: "{= ${view>/editable} && !${view>/isAribaMode} }",
-            textAlign: "End",
-            liveChange: this._onPriceChange.bind(this, v.VendorIndex, "Neg")
+            items: [
+              new Input({
+                value: `{view>v${v.VendorIndex}NegPrice}`,
+                editable: "{= ${view>/editable} && !${view>/isAribaMode} }",
+                textAlign: "End",
+                layoutData: new sap.m.FlexItemData({ growFactor: 1 }),
+                liveChange: this._onPriceChange.bind(this, v.VendorIndex, "Neg")
+              }),
+              this._createNegPriceInfoIcon(v)
+            ]
           }),
+          // End: added by SI2 Tech
           new Input({
             value: `{view>v${v.VendorIndex}NegPrice}`,
             visible: "{= ${view>NodeType} === 'SUMMARY' && ${view>Label} !== 'Basic Amount Total' && ${view>Label} !== 'Total Basic' && ${view>Label} !== 'Net Landed Cost (Rs)' && ${view>Label} !== 'Commercial Rating' && ${view>Label} !== 'Loading Comments' && ${view>Label} !== 'Delivery Date' && ${view>Label} !== 'Payment Terms' && ${view>Label} !== 'Total Amt with Comm. Loading' }",
@@ -4902,4 +4912,3 @@ onOpenQCSForm: function () {
   }));
   // End: added by SI2 Tech
 });
- 

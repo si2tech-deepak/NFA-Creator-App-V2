@@ -5,7 +5,7 @@
         id="poHistoryPopover"
         title="{po>/title}"
         placement="Auto"
-        contentWidth="{= ${po>/mode} === 'LPP' ? '30rem' : '52rem' }"
+        contentWidth="{= ${po>/mode} === 'LPP' ? '54rem' : '52rem' }"
         horizontalScrolling="false">
         <content>
             <VBox class="sapUiSmallMargin" busy="{po>/busy}" busyIndicatorDelay="0">
@@ -17,7 +17,7 @@
                     visible="{= !!${po>/note} }"
                     class="sapUiSmallMarginBottom"/>
 
-                <!-- Unit LPP: the single source PO -->
+                <!-- SI2 Tech: single source PO replaced by the plant table below
                 <VBox visible="{= ${po>/mode} === 'LPP' &amp;&amp; !!${po>/po} }" class="sapUiTinyMarginTop">
                     <HBox class="sapUiTinyMarginBottom">
                         <Label text="PO / Item" width="7rem"/>
@@ -36,31 +36,85 @@
                         <ObjectNumber number="{po>/po/priceText}" unit="{po>/po/priceUnitText}"/>
                     </HBox>
                 </VBox>
+                -->
+
+                <!-- Start: added by SI2 Tech - Unit LPP: one row per plant, NFA plant (source PO) highlighted -->
+                <Text text="{po>/caption}"
+                      visible="{= ${po>/mode} === 'LPP' &amp;&amp; !!${po>/caption} }"
+                      class="sapUiTinyMarginBottom"/>
+                <Table
+                    visible="{= ${po>/mode} === 'LPP' }"
+                    items="{po>/rows}"
+                    noDataText="{po>/noData}">
+                    <columns>
+                        <Column width="11rem"><Text text="Plant"/></Column>
+                        <Column width="9rem"><Text text="PO / Item"/></Column>
+                        <Column width="6.5rem"><Text text="PO Date"/></Column>
+                        <Column><Text text="Vendor"/></Column>
+                        <Column width="10rem" hAlign="End"><Text text="Net Price"/></Column>
+                    </columns>
+                    <items>
+                        <ColumnListItem highlight="{= ${po>isNfaPlant} ? 'Information' : 'None' }">
+                            <cells>
+                                <VBox renderType="Bare">
+                                    <ObjectIdentifier title="{po>Plant}" text="{po>plantNameText}"/>
+                                    <ObjectStatus text="NFA plant" state="Information"
+                                                  icon="sap-icon://locate-me"
+                                                  visible="{= !!${po>isNfaPlant} }"/>
+                                </VBox>
+                                <Text text="{po>poText}" wrapping="false"/>
+                                <Text text="{po>dateText}" wrapping="false"/>
+                                <ObjectIdentifier title="{po>VendorName}" text="{po>vendorNoText}"/>
+                                <ObjectNumber number="{po>priceText}" unit="{po>priceUnitText}"
+                                              emphasized="{= !!${po>isNfaPlant} }"/>
+                            </cells>
+                        </ColumnListItem>
+                    </items>
+                </Table>
+                <!-- End: added by SI2 Tech -->
 
                 <!-- Negotiated Price: last 10 POs for material + vendor + plant, newest first -->
+                <!-- Start: added by SI2 Tech - one row per PO; a PO with several items opens a drop down -->
                 <Table
                     visible="{= ${po>/mode} === 'VENDOR' }"
                     items="{po>/rows}"
                     noDataText="{po>/noData}">
                     <columns>
-                        <Column width="9rem"><Text text="PO / Item"/></Column>
+                        <Column width="2.75rem"><Text text=""/></Column>
+                        <Column width="10rem"><Text text="PO / Item"/></Column>
                         <Column width="6.5rem"><Text text="PO Date"/></Column>
                         <Column><Text text="Vendor"/></Column>
-                        <Column width="10rem" hAlign="End"><Text text="Net Price"/></Column>
+                        <Column width="11rem" hAlign="End"><Text text="Net Price"/></Column>
                         <Column width="8rem" hAlign="End"><Text text="PO Qty"/></Column>
                     </columns>
                     <items>
-                        <ColumnListItem>
+                        <ColumnListItem visible="{po>visible}">
                             <cells>
-                                <Text text="{po>poText}" wrapping="false"/>
+                                <Button
+                                    icon="{= ${po>expanded} ? 'sap-icon://navigation-down-arrow' : 'sap-icon://navigation-right-arrow' }"
+                                    type="Transparent"
+                                    tooltip="{= ${po>expanded} ? 'Hide PO items' : 'Show PO items' }"
+                                    visible="{po>expandable}"
+                                    press="onPoHistToggle"/>
+                                <VBox renderType="Bare">
+                                    <Text text="{po>poText}" wrapping="false"
+                                          visible="{= ${po>kind} === 'PO' }"/>
+                                    <Text text="{po>itemsText}" wrapping="false"
+                                          visible="{= !!${po>itemsText} }"/>
+                                    <Text text="{po>poText}" wrapping="false"
+                                          visible="{= ${po>kind} === 'ITEM' }"
+                                          class="sapUiSmallMarginBegin"/>
+                                </VBox>
                                 <Text text="{po>dateText}" wrapping="false"/>
                                 <ObjectIdentifier title="{po>VendorName}" text="{po>vendorNoText}"/>
-                                <ObjectNumber number="{po>priceText}" unit="{po>priceUnitText}"/>
+                                <ObjectNumber number="{po>priceText}" unit="{po>priceUnitText}"
+                                              emphasized="{= ${po>kind} === 'PO' }"/>
                                 <ObjectNumber number="{po>qtyText}" unit="{po>Uom}" emphasized="false"/>
                             </cells>
                         </ColumnListItem>
                     </items>
                 </Table>
+                <!-- End: added by SI2 Tech -->
             </VBox>
         </content>
         <endButton>

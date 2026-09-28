@@ -236,18 +236,24 @@
                                     <grid:template><Text text="{viewModel>RemainingQty}" visible="{= ${viewModel>NodeType} === 'ITEM' }" textAlign="End"/></grid:template>
                                 </grid:Column>
                                 <!-- Start: added by SI2 Tech - Unit LPP (+ source PO info), width 80px -> 110px to fit the icon -->
-                                <grid:Column width="110px" hAlign="End">
+                                <!-- SI2 Tech: 110px -> 140px; the value may shrink (ellipsis + tooltip), the info button never does -->
+                                <grid:Column width="140px" hAlign="End">
                                     <grid:label><Label text="Unit LPP" textAlign="Center" width="100%"/></grid:label>
                                     <grid:template>
                                         <HBox visible="{= ${viewModel>NodeType} === 'ITEM' }" justifyContent="End" alignItems="Center" width="100%">
-                                            <Text text="{viewModel>UnitLpp}" textAlign="End"/>
-                                            <core:Icon
-                                                src="sap-icon://hint"
-                                                visible="{= !${viewModel>/header/AribaDocNo} &amp;&amp; !!${viewModel>Material} &amp;&amp; parseFloat(${viewModel>UnitLpp}) > 0 }"
+                                            <Text text="{viewModel>UnitLpp}" tooltip="{viewModel>UnitLpp}" wrapping="false" textAlign="End">
+                                                <layoutData><FlexItemData shrinkFactor="1" minWidth="0"/></layoutData>
+                                            </Text>
+                                            <!-- SI2 Tech: sap.m.Button instead of core:Icon - an Icon click is taken by the table cell -->
+                                            <!-- SI2 Tech: Ariba check removed - the button is shown for Ariba NFAs as well -->
+                                            <Button
+                                                icon="sap-icon://hint"
+                                                type="Transparent"
+                                                visible="{= !!${viewModel>Material} &amp;&amp; parseFloat(${viewModel>UnitLpp}) > 0 }"
                                                 press="onVhLppInfoPress"
-                                                tooltip="Show the PO this Unit LPP comes from"
-                                                decorative="false"
-                                                class="sapUiTinyMarginBegin"/>
+                                                tooltip="Show the PO this Unit LPP comes from">
+                                                <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+                                            </Button>
                                         </HBox>
                                     </grid:template>
                                 </grid:Column>
