@@ -128,30 +128,35 @@
                                     </Text>
                                 </HBox>
                                 <Label text="{vcModel>moveHdrText}" design="Bold" wrapping="true" class="sapUiTinyMarginTop"/>
-                                <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%">
+                                <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%" class="vcMoveRowSep">
                                     <Text text="Increase in existing line items" tooltip="Sum of the total increases of lines that are in both versions" class="sapUiTinyMarginEnd"/>
                                     <ObjectNumber number="{vcModel>incText}" state="{vcModel>incState}" textAlign="End">
                                         <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
                                     </ObjectNumber>
                                 </HBox>
-                                <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%">
+                                <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%" class="vcMoveRowSep">
                                     <Text text="Decrease in existing line items" tooltip="Sum of the total decreases of lines that are in both versions" class="sapUiTinyMarginEnd"/>
                                     <ObjectNumber number="{vcModel>decText}" state="{vcModel>decState}" textAlign="End">
                                         <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
                                     </ObjectNumber>
                                 </HBox>
                                 <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%">
-                                    <Text text="New line items added" tooltip="Total of lines that are not in the previous version" class="sapUiTinyMarginEnd"/>
+                                    <!-- SI2 Tech: label changed from "New line items added" -->
+                                    <Text text="Increase in PO Value due to Additional New/Extra Pay items" tooltip="Total of lines that are not in the previous version" wrapping="true" class="sapUiTinyMarginEnd">
+                                        <layoutData><FlexItemData growFactor="1" shrinkFactor="1" minWidth="0"/></layoutData>
+                                    </Text>
                                     <ObjectNumber number="{vcModel>addText}" state="{vcModel>addState}" textAlign="End">
                                         <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
                                     </ObjectNumber>
                                 </HBox>
+                                <!-- SI2 Tech: Line items removed row not needed in the dialog
                                 <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%">
                                     <Text text="Line items removed" tooltip="Total of lines of the previous version that are no longer ordered" class="sapUiTinyMarginEnd"/>
                                     <ObjectNumber number="{vcModel>remText}" state="{vcModel>remState}" textAlign="End">
                                         <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
                                     </ObjectNumber>
                                 </HBox>
+                                -->
                                 <Label text="Net impact" design="Bold" class="sapUiTinyMarginTop"
                                        tooltip="Change in the basic amount vs the previous version (increase − decrease + added − removed)"/>
                                 <!-- End: added by SI2 Tech -->
@@ -174,9 +179,10 @@
                 <!-- PR -> line items, same interaction as the QCS vendor comparison -->
                 <table:TreeTable
                     id="vcTable"
+                    class="vcTable"
                     rows="{path: 'vcModel>/tree', parameters: {arrayNames: ['children'], numberOfExpandedLevels: 1}}"
                     selectionMode="None"
-                    fixedColumnCount="3"
+                    fixedColumnCount="5"
                     enableColumnReordering="false"
                     visibleRowCountMode="Auto"
                     minAutoRowCount="1"
@@ -231,12 +237,13 @@
                                 <!-- End: added by SI2 Tech -->
                             </table:template>
                         </table:Column>
-                        <table:Column width="11rem">
+                        <!-- SI2 Tech: width 11rem -> 15rem, text "(Vendor No.) Name" (was VendorName) -->
+                        <table:Column width="15rem">
                             <table:multiLabels>
                                 <Label text="Vendor" textAlign="Center" width="100%"/>
                             </table:multiLabels>
                             <table:template>
-                                <Text text="{vcModel>VendorName}" tooltip="{vcModel>VendorName}" wrapping="false"/>
+                                <Text text="{vcModel>vendorText}" tooltip="{vcModel>vendorText}" wrapping="false"/>
                             </table:template>
                         </table:Column>
                         <table:Column width="10rem" hAlign="Center">
@@ -255,6 +262,16 @@
                                 <Text text="{vcModel>Material}" wrapping="false"/>
                             </table:template>
                         </table:Column>
+                        <!-- Start: added by SI2 Tech - PO No. once before the versions (latest PO; highlighted when it changed across versions) -->
+                        <table:Column width="8rem">
+                            <table:multiLabels>
+                                <Label text="PO No." tooltip="Purchase order of the line's vendor (latest version)" textAlign="Center" width="100%"/>
+                            </table:multiLabels>
+                            <table:template>
+                                <ObjectStatus text="{vcModel>poNo}" state="{vcModel>poState}" tooltip="{vcModel>poTip}"/>
+                            </table:template>
+                        </table:Column>
+                        <!-- End: added by SI2 Tech -->
                         <!-- Version groups (Qty | Unit Rate | Total | Δ) are added by the controller -->
                     </table:columns>
                 </table:TreeTable>

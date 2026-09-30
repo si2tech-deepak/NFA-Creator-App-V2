@@ -839,6 +839,11 @@ sap.ui.define(
             changed: false
           };
           oItem.LongText = r.LongText || ""; // SI2 Tech: Long Text link + Excel
+          // SI2 Tech: Vendor column shows "(Vendor No.) Name"
+          oItem.VendorNo = r.VendorNo || "";
+          oItem.vendorText = oItem.VendorNo && r.VendorName !== oItem.VendorNo
+            ? "(" + oItem.VendorNo + ") " + (r.VendorName || "")
+            : (r.VendorName || "");
           var iFirstSeen = -1, iLastSeen = -1;
 
           for (var i = 0; i < n; i++) {
@@ -897,6 +902,18 @@ sap.ui.define(
               oItem.changed = true;
             }
           }
+
+          // Start: added by SI2 Tech - single PO No. column before the versions (latest PO of the line)
+          var aPoHist = [];
+          oItem.poNo = "";
+          for (var k = 0; k < n; k++) {
+            var sPo = r.vals[k] && r.vals[k].po;
+            if (sPo) { oItem.poNo = sPo; aPoHist.push("V" + aVer[k] + ": " + sPo); }
+          }
+          var bPoChanged = aPoHist.some(function (s) { return s.split(": ")[1] !== oItem.poNo; });
+          oItem.poState = bPoChanged ? "Warning" : "None";
+          oItem.poTip = bPoChanged ? aPoHist.join("\n") : oItem.poNo;
+          // End: added by SI2 Tech
 
           // Start: added by SI2 Tech - "original" renamed to "original scope"
           // Delta current vs original scope (only when 3+ versions are compared)
@@ -1103,7 +1120,7 @@ sap.ui.define(
 
       _vcBuildColumns: function (aVersionNums) {
         var oTable = this.byId("vcTable");
-        var iFixed = 4;
+        var iFixed = 5; // SI2 Tech: 4 -> 5, PO No. column added to the fragment
         var that = this;
         var n = aVersionNums.length;
         while (oTable.getColumns().length > iFixed) {
@@ -1115,29 +1132,31 @@ sap.ui.define(
 
         aVersionNums.forEach(function (iVer, i) {
           var aCols = [
-            { label: "PO No.", tip: "Purchase order of the line's vendor in this version", val: "p" + i, state: "ps" + i, prev: "pp" + i, text: true },
-            { label: "Qty", tip: "Ordered (split) quantity", val: "q" + i, state: "qs" + i, prev: "qp" + i, fmt: fnFmt, unit: true },
+            // SI2 Tech: PO No. shown once in the fixed PO No. column of the fragment, not per version
+            // { label: "PO No.", tip: "Purchase order of the line's vendor in this version", val: "p" + i, state: "ps" + i, prev: "pp" + i, text: true },
+            // SI2 Tech: headers renamed Qty -> PO Qty, Total -> Total Amount (also in the change columns below)
+            { label: "PO Qty", tip: "Ordered (split) quantity", val: "q" + i, state: "qs" + i, prev: "qp" + i, fmt: fnFmt, unit: true },
             { label: "Unit Rate", tip: "Negotiated price per unit", val: "r" + i, state: "rs" + i, prev: "rp" + i, fmt: fnFmt },
-            { label: "Total", tip: "Qty × Unit Rate", val: "t" + i, state: "ts" + i, prev: "tp" + i, fmt: fnFmt }
+            { label: "Total Amount", tip: "PO Qty × Unit Rate", val: "t" + i, state: "ts" + i, prev: "tp" + i, fmt: fnFmt }
           ];
           // Start: added by SI2 Tech - qty / rate change columns
-          // Change columns in words (no symbols): Qty change / Rate change / Total change vs the compared version
+          // Change columns in words (no symbols): PO Qty change / Unit Rate change / Total Amount change vs the compared version
           if (i > 0) {
             var sPrevV = "V" + aVersionNums[i - 1];
-            aCols.push({ label: "Qty change vs " + sPrevV, tip: "Quantity in V" + iVer + " minus quantity in " + sPrevV,
+            aCols.push({ label: "PO Qty change vs " + sPrevV, tip: "Quantity in V" + iVer + " minus quantity in " + sPrevV,
                          val: "dq" + i, state: "dqs" + i, fmt: fnFmtDelta, delta: true, unit: true });
-            aCols.push({ label: "Rate change vs " + sPrevV, tip: "Unit rate in V" + iVer + " minus unit rate in " + sPrevV,
+            aCols.push({ label: "Unit Rate change vs " + sPrevV, tip: "Unit rate in V" + iVer + " minus unit rate in " + sPrevV,
                          val: "dr" + i, state: "drs" + i, fmt: fnFmtDelta, delta: true });
-            aCols.push({ label: "Total change vs " + sPrevV, tip: "Total (Qty × Unit Rate) in V" + iVer + " minus total in " + sPrevV,
+            aCols.push({ label: "Total Amount change vs " + sPrevV, tip: "Total Amount (PO Qty × Unit Rate) in V" + iVer + " minus total in " + sPrevV,
                          val: "d" + i, state: "ds" + i, fmt: fnFmtDelta, delta: true });
           }
           if (i === n - 1 && n > 2) {
             var sOrigV = "V" + aVersionNums[0];
-            aCols.push({ label: "Qty change vs " + sOrigV, tip: "Quantity in V" + iVer + " minus quantity in " + sOrigV + " (original scope)",
+            aCols.push({ label: "PO Qty change vs " + sOrigV, tip: "Quantity in V" + iVer + " minus quantity in " + sOrigV + " (original scope)",
                          val: "dqO", state: "dqOs", fmt: fnFmtDelta, delta: true, unit: true });
-            aCols.push({ label: "Rate change vs " + sOrigV, tip: "Unit rate in V" + iVer + " minus unit rate in " + sOrigV + " (original scope)",
+            aCols.push({ label: "Unit Rate change vs " + sOrigV, tip: "Unit rate in V" + iVer + " minus unit rate in " + sOrigV + " (original scope)",
                          val: "drO", state: "drOs", fmt: fnFmtDelta, delta: true });
-            aCols.push({ label: "Total change vs " + sOrigV, tip: "Total in V" + iVer + " minus total in " + sOrigV + " (original scope)",
+            aCols.push({ label: "Total Amount change vs " + sOrigV, tip: "Total in V" + iVer + " minus total in " + sOrigV + " (original scope)",
                          val: "dO", state: "dOs", fmt: fnFmtDelta, delta: true });
           }
           // End: added by SI2 Tech
@@ -1175,7 +1194,9 @@ sap.ui.define(
               };
             }
             var mSettings = {
-              width: c.delta ? "10rem" : (c.unit ? "8.5rem" : "8rem"), // SI2 Tech: wider for the worded change headers
+              // SI2 Tech: replaced - width from the header length so the header stays on one line
+              // width: c.delta ? "10rem" : (c.unit ? "8.5rem" : "8rem"), // SI2 Tech: wider for the worded change headers
+              width: Math.max(8.5, Math.ceil(c.label.length * 0.5 + 2)) + "rem",
               hAlign: "End",
               multiLabels: [
                 new sap.m.Label({ text: that._vcVersionLabel(iVer), textAlign: "Center", width: "100%", design: "Bold" }),
