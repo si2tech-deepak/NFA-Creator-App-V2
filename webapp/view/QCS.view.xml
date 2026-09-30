@@ -312,12 +312,13 @@
             </Text>
             <!-- Start: added by SI2 Tech - info button (sap.m.Button, same control as the row delete button) -->
             <!-- SI2 Tech: Ariba check removed - the button is shown for Ariba NFAs as well -->
+            <!-- SI2 Tech: Unit LPP > 0 check removed - with no PO in this plant the popup lists the other plants -->
             <Button
               icon="sap-icon://hint"
               type="Transparent"
-              visible="{= !!${view>Material} &amp;&amp; parseFloat(${view>UnitLpp}) > 0 }"
+              visible="{= !!${view>Material} }"
               press="onLppInfoPress"
-              tooltip="Show the PO this Unit LPP comes from">
+              tooltip="Show the PO this Unit LPP comes from and the last PO in the other plants">
               <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
             </Button>
             <!-- End: added by SI2 Tech -->

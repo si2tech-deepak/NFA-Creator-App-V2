@@ -388,6 +388,7 @@ sap.ui.define(
           this.getView().addDependent(this._oVcDialog);
           this._oVcDialog.setModel(this._oVcModel, "vcModel");
         }
+        this._vcAttachLongText(); // SI2 Tech: Long Text popover in the comparison table
 
         // Same call Version History uses: blank Version returns the list of versions.
         // $expand is required - without it Gateway does not route to GET_EXPANDED_ENTITYSET.
@@ -437,8 +438,27 @@ sap.ui.define(
               tree: [], allTree: [], cards: [], viewMode: "all"
             });
             that.byId("vcVersionSelect").setSelectedKeys(aDefaultKeys);
+            // Start: added by SI2 Tech - PO filter
+            // Every version is read once (cached), so the PO drop down lists all POs created by this NFA.
+            // Default: all POs selected = same view as before.
+            that._oVcModel.setSizeLimit(100000); // JSONModel lists show only 100 entries by default
+            that._vcSnapCache = {};
+            that._oVcModel.setProperty("/availablePos", []);
+            that._oVcModel.setProperty("/selectedPos", []);
+            that._oVcModel.setProperty("/poFiltered", false);
+            that.byId("vcPoSelect").setSelectedKeys([]);
             that._oVcDialog.open();
-            that._vcLoadAndRender();
+            // SI2 Tech: replaced by the call below (long texts are read together with the versions)
+            // that._vcPreloadVersions(sNfaRefNo, aVersions).then(function () {
+            //   that._vcLoadAndRender();
+            // });
+            Promise.all([that._vcPreloadVersions(sNfaRefNo, aVersions), that._vcLoadLongTexts(sNfaRefNo)]).then(function () {
+              that._vcLoadAndRender();
+            });
+            // End: added by SI2 Tech
+            // SI2 Tech: replaced by the block above
+            // that._oVcDialog.open();
+            // that._vcLoadAndRender();
           },
           error: function () {
             sap.ui.core.BusyIndicator.hide();
@@ -456,6 +476,173 @@ sap.ui.define(
         this._oVcModel.setProperty("/selectedVersions", aKeys);
         this._vcLoadAndRender();
       },
+
+      // Start: added by SI2 Tech - PO filter
+      // Key used in the PO drop down for lines whose vendor has no PO yet in that version
+      VC_PO_NONE: "__NONE__",
+
+      onVcPoChange: function () {
+        var oCombo = this.byId("vcPoSelect");
+        var aKeys = oCombo.getSelectedKeys();
+        if (!aKeys.length) {
+          MessageToast.show("Select at least one PO.");
+          oCombo.setSelectedKeys(this._oVcModel.getProperty("/selectedPos") || []);
+          return;
+        }
+        var iAll = (this._oVcModel.getProperty("/availablePos") || []).length;
+        this._oVcModel.setProperty("/selectedPos", aKeys);
+        this._oVcModel.setProperty("/poFiltered", aKeys.length < iAll);
+        this._vcLoadAndRender();
+      },
+
+      // Reads every version of the NFA (own $batch each) into the cache and fills the PO drop down.
+      // A version that fails here is skipped; it is read again (and the error shown) when it is selected.
+      _vcPreloadVersions: function (sNfaRefNo, aVersions) {
+        var that = this;
+        return Promise.all(aVersions.map(function (v) {
+          return that._vcGetVersion(sNfaRefNo, v.key).then(null, function () { return null; });
+        })).then(function (aSnaps) {
+          var aPos = that._vcCollectPos(aSnaps);
+          var aKeys = aPos.map(function (p) { return p.key; });
+          // Items first, then selection (same reason as the version drop down)
+          that._oVcModel.setProperty("/availablePos", aPos);
+          that._oVcModel.setProperty("/selectedPos", aKeys);
+          that._oVcModel.setProperty("/poFiltered", false);
+          that.byId("vcPoSelect").setSelectedKeys(aKeys);
+        });
+      },
+
+      // Version snapshot from the cache, read from the backend only the first time
+      _vcGetVersion: function (sNfaRefNo, sKey) {
+        var that = this;
+        var iVer = parseInt(sKey, 10);
+        this._vcSnapCache = this._vcSnapCache || {};
+        if (this._vcSnapCache[iVer]) { return Promise.resolve(this._vcSnapCache[iVer]); }
+        return this._vcReadVersion(sNfaRefNo, sKey).then(function (oSnap) {
+          that._vcSnapCache[iVer] = oSnap;
+          return oSnap;
+        });
+      },
+
+      // POs created by this NFA: the PO of every vendor that has an ordered (non-ICE) line, over all versions.
+      // Lines whose vendor has no PO yet are collected under "PO not created yet".
+      _vcCollectPos: function (aSnaps) {
+        var that = this;
+        var mPo = {};
+        var bNone = false;
+        aSnaps.forEach(function (oSnap) {
+          if (!oSnap) { return; }
+          var mVendorPo = {}, mVendorName = {};
+          oSnap.vendors.forEach(function (v) {
+            mVendorPo[v.VendorNo] = v.PurchaseOrder || "";
+            mVendorName[v.VendorNo] = v.VendorName || v.VendorNo;
+          });
+          oSnap.lines.forEach(function (l) {
+            if ((parseFloat(l.SplitPoQty) || 0) === 0 || l.VendorIceFlag === "X") { return; }
+            var sPo = mVendorPo[l.VendorNo] || "";
+            if (!sPo) { bNone = true; return; }
+            if (!mPo[sPo]) { mPo[sPo] = { key: sPo, text: sPo + " · " + (mVendorName[l.VendorNo] || l.VendorNo) }; }
+          });
+        });
+        var aPos = Object.keys(mPo).sort().map(function (k) { return mPo[k]; });
+        if (bNone) { aPos.push({ key: that.VC_PO_NONE, text: "PO not created yet" }); }
+        return aPos;
+      },
+
+      // Text of the PO selection for the Download Form
+      _vcPoSelectionText: function () {
+        var aAll = this._oVcModel.getProperty("/availablePos") || [];
+        var mSel = {};
+        (this._oVcModel.getProperty("/selectedPos") || []).forEach(function (k) { mSel[k] = true; });
+        var bFiltered = !!this._oVcModel.getProperty("/poFiltered");
+        var aText = aAll.filter(function (p) { return !bFiltered || mSel[p.key]; }).map(function (p) { return p.text; });
+        return (bFiltered ? "" : "All POs: ") + (aText.join(", ") || "PO not created yet");
+      },
+      // End: added by SI2 Tech
+
+      // Start: added by SI2 Tech - Long Text (material PO text), same "Long Text" link and hover popover as the QCS page
+      // The version log lines do not carry the long text (GET_VERSION_LOG does not read it), so it is taken per material
+      // from the NFA's current lines (/et_vendor_pr_item_detailsSet, filled by FETCH_MATERIAL_LONG_TEXT).
+      _vcLoadLongTexts: function (sNfaRefNo) {
+        var that = this;
+        this._vcLongText = {};
+        return new Promise(function (resolve) {
+          that.getOwnerComponent().getModel().read("/et_vendor_pr_item_detailsSet", {
+            filters: [new Filter("NfaRefNo", FilterOperator.EQ, sNfaRefNo)],
+            success: function (oData) {
+              (oData.results || []).forEach(function (r) {
+                var sKey = that._vcMatKey(r.Material);
+                if (sKey && r.MaterialLongText && !that._vcLongText[sKey]) { that._vcLongText[sKey] = r.MaterialLongText; }
+              });
+              resolve();
+            },
+            error: function () { resolve(); } // no long texts - the comparison still opens
+          });
+        });
+      },
+
+      _vcMatKey: function (sMaterial) {
+        return String(sMaterial || "").trim().replace(/^0+(?=.)/, "");
+      },
+
+      _vcLongTextOf: function (sMaterial) {
+        return (this._vcLongText || {})[this._vcMatKey(sMaterial)] || "";
+      },
+
+      // Delegated hover / click handler on the table (rows are re-used while scrolling, so no per-row handlers)
+      _vcAttachLongText: function () {
+        var that = this;
+        var oTable = this.byId("vcTable");
+        if (!oTable || this._bVcLongTextDelegate) { return; }
+        this._bVcLongTextDelegate = true;
+        oTable.addEventDelegate({
+          onAfterRendering: function () {
+            var $table = oTable.$();
+            $table.off(".vcLongText");
+            $table.on("mouseenter.vcLongText click.vcLongText", ".vcLongText", function (oEv) {
+              that._vcOpenLongText(oEv.currentTarget);
+            });
+            $table.on("mouseleave.vcLongText", ".vcLongText", function () {
+              setTimeout(function () {
+                if (!that._bVcInLongTextPop && that._oVcLongTextPop) { that._oVcLongTextPop.close(); }
+              }, 80);
+            });
+          }
+        });
+      },
+
+      _vcOpenLongText: function (oDom) {
+        var that = this;
+        var Element = sap.ui.require("sap/ui/core/Element");
+        var oCtl = Element && Element.closestTo ? Element.closestTo(oDom) : null;
+        var oCtx = oCtl && oCtl.getBindingContext("vcModel");
+        var sText = oCtx ? oCtx.getProperty("LongText") : "";
+        if (!sText) { return; }
+        if (!this._oVcLongTextPop) {
+          this._oVcLongTextText = new sap.m.Text({ wrapping: true, width: "100%" })
+            .addStyleClass("sapUiSmallMarginBeginEnd sapUiSmallMarginTopBottom");
+          this._oVcLongTextPop = new sap.m.Popover({
+            showHeader: true,
+            title: "Long Text",
+            placement: "PreferredRightOrFlip",
+            contentWidth: "420px",
+            afterOpen: function () { that._bVcInLongTextPop = false; },
+            afterClose: function () { that._oVcLongTextOpener = null; },
+            content: [new sap.m.ScrollContainer({ vertical: true, horizontal: false, height: "280px", content: [this._oVcLongTextText] })]
+          });
+          this._oVcLongTextPop.attachBrowserEvent("mouseenter", function () { that._bVcInLongTextPop = true; });
+          this._oVcLongTextPop.attachBrowserEvent("mouseleave", function () {
+            that._bVcInLongTextPop = false;
+            that._oVcLongTextPop.close();
+          });
+          this._oVcDialog.addDependent(this._oVcLongTextPop);
+        }
+        if (this._oVcLongTextPop.isOpen() && this._oVcLongTextOpener === oDom) { return; }
+        this._oVcLongTextText.setText(sText);
+        this._oVcLongTextOpener = oDom;
+        this._oVcLongTextPop.openBy(oDom);
+      },
+      // End: added by SI2 Tech
 
       onVcFilterChange: function () {
         var bChangedOnly = this._oVcModel.getProperty("/viewMode") === "changed";
@@ -502,13 +689,16 @@ sap.ui.define(
         aKeys.sort(function (a, b) { return parseInt(a, 10) - parseInt(b, 10); });
 
         sap.ui.core.BusyIndicator.show(0);
-        Promise.all(aKeys.map(function (sKey) { return that._vcReadVersion(sNfaRefNo, sKey); }))
+        // SI2 Tech: replaced by the line below (versions already read come from the cache)
+        // Promise.all(aKeys.map(function (sKey) { return that._vcReadVersion(sNfaRefNo, sKey); }))
+        Promise.all(aKeys.map(function (sKey) { return that._vcGetVersion(sNfaRefNo, sKey); })) // SI2 Tech
           .then(function (aSnapshots) {
             try {
               var aNums = aSnapshots.map(function (s) { return s.version; });
               var oResult = that._vcBuildTree(aSnapshots);
               that._vcSnapshots = aSnapshots;
               that._vcBuildColumns(aNums);
+              that._oVcModel.setProperty("/cards", []); // SI2 Tech: re-create the boxes - ObjectStatus does not refresh a changed icon
               that._oVcModel.setProperty("/cards", oResult.cards);
               that._oVcModel.setProperty("/allTree", oResult.tree);
               that.onVcFilterChange();
@@ -584,6 +774,13 @@ sap.ui.define(
         var fnDiff = function (a, b) { return Math.abs((a || 0) - (b || 0)) > EPS; };
         var fnDeltaState = function (d) { return d > EPS ? "Error" : (d < -EPS ? "Success" : "None"); };
         var aVer = aSnapshots.map(function (s) { return s.version; });
+        // Start: added by SI2 Tech - PO filter + basic-amount movements for the summary boxes
+        var bPoFiltered = !!this._oVcModel.getProperty("/poFiltered");
+        var mPoSel = {};
+        (this._oVcModel.getProperty("/selectedPos") || []).forEach(function (k) { mPoSel[k] = true; });
+        var aVendorsIn = aSnapshots.map(function () { return {}; });   // vendors with at least one shown line, per version
+        var aMove = aSnapshots.map(function () { return { inc: 0, dec: 0, add: 0, rem: 0 }; }); // vs the previous version
+        // End: added by SI2 Tech
 
         // 1. Collect every line across the selected versions
         var mLines = {};
@@ -598,6 +795,10 @@ sap.ui.define(
           oSnap.lines.forEach(function (l) {
             var fQty = parseFloat(l.SplitPoQty) || 0;
             if (fQty === 0 || l.VendorIceFlag === "X") { return; }
+            // Start: added by SI2 Tech - PO filter: the line counts in this version only when its PO is selected
+            if (bPoFiltered && !mPoSel[mVendorPo[l.VendorNo] || that.VC_PO_NONE]) { return; }
+            aVendorsIn[i][l.VendorNo] = true;
+            // End: added by SI2 Tech
             var sItem = String(parseInt(l.PrItem, 10) || l.PrItem || "");
             var sKey = [l.PrNo, sItem, l.Material, l.VendorNo].join("|");
             if (!mLines[sKey]) {
@@ -609,6 +810,9 @@ sap.ui.define(
               };
               aKeys.push(sKey);
             }
+            // Start: added by SI2 Tech - Long Text: from the log line if filled, else per material from the current NFA lines
+            if (!mLines[sKey].LongText) { mLines[sKey].LongText = l.MaterialLongText || that._vcLongTextOf(l.Material); }
+            // End: added by SI2 Tech
             var fRate = parseFloat(l.NegotiatedPrice) || 0;
             mLines[sKey].vals[i] = { qty: fQty, rate: fRate, total: fnRound(fQty * fRate), po: mVendorPo[l.VendorNo] || "" };
           });
@@ -634,6 +838,7 @@ sap.ui.define(
             VendorName: r.VendorName, Uom: r.Uom,
             changed: false
           };
+          oItem.LongText = r.LongText || ""; // SI2 Tech: Long Text link + Excel
           var iFirstSeen = -1, iLastSeen = -1;
 
           for (var i = 0; i < n; i++) {
@@ -659,6 +864,15 @@ sap.ui.define(
             var fDr = (cur && prev) ? fnRound(cur.rate - prev.rate) : null;
             oItem["dr" + i] = fDr;
             oItem["drs" + i] = fnDeltaState(fDr || 0);
+            // End: added by SI2 Tech
+            // Start: added by SI2 Tech - basic-amount movements vs the previous version (summary boxes)
+            if (cur && prev) {
+              if (fDelta > EPS) { aMove[i].inc += fDelta; } else if (fDelta < -EPS) { aMove[i].dec -= fDelta; }
+            } else if (cur) {
+              aMove[i].add += cur.total;
+            } else if (prev) {
+              aMove[i].rem += prev.total;
+            }
             // End: added by SI2 Tech
             var sWas = "V" + aVer[i - 1] + ": ";
             if (cur && !prev) {
@@ -782,12 +996,27 @@ sap.ui.define(
 
         // 4. Summary cards: PO amount from the approval form of each version
         var aPo = aSnapshots.map(function (s) { return fnRound(parseFloat(s.form.CurrentPoAmt) || 0); });
+        // Start: added by SI2 Tech - PO filter: PO amount = net landed cost of the vendors (= POs) shown in that version
+        // (all POs selected: approval form amount as before; it is the sum of the same vendor net landed costs)
+        if (bPoFiltered) {
+          aPo = aSnapshots.map(function (s, i) {
+            var mDone = {};
+            return fnRound(s.vendors.reduce(function (fSum, v) {
+              if (!aVendorsIn[i][v.VendorNo] || v.VendorIceFlag === "X" || mDone[v.VendorNo]) { return fSum; }
+              mDone[v.VendorNo] = true;
+              return fSum + (parseFloat(v.NetLandedCost) || 0);
+            }, 0));
+          });
+        }
+        var aBasic = aSnapshots.map(function (s, i) { return fnRound(typeof oGrand["t" + i] === "number" ? oGrand["t" + i] : 0); });
+        // End: added by SI2 Tech
         var aCards = aSnapshots.map(function (s, i) {
           // PO numbers of the vendors that have ordered lines in this version
           var mOrdered = {};
           s.lines.forEach(function (l) {
             if ((parseFloat(l.SplitPoQty) || 0) !== 0 && l.VendorIceFlag !== "X") { mOrdered[l.VendorNo] = true; }
           });
+          mOrdered = aVendorsIn[i]; // SI2 Tech: PO filter - only vendors with a shown line (unfiltered: the same vendors)
           var aPoNos = [];
           s.vendors.forEach(function (v) {
             if (mOrdered[v.VendorNo] && v.PurchaseOrder && aPoNos.indexOf(v.PurchaseOrder) < 0) { aPoNos.push(v.PurchaseOrder); }
@@ -812,19 +1041,60 @@ sap.ui.define(
             deltaText: "Baseline", deltaState: "None", deltaIcon: "",
             deltaOrigText: "", deltaOrigState: "None"
           };
+          // SI2 Tech: replaced by the block below - net impact is now on the basic amount, not the PO amount
+          // if (i > 0) {
+          //   var d = fnRound(aPo[i] - aPo[i - 1]);
+          //   oCard.deltaText = that._vcFmtDelta(d) + " vs V" + aVer[i - 1];
+          //   oCard.deltaState = fnDeltaState(d);
+          //   oCard.deltaIcon = d > EPS ? "sap-icon://trend-up" : (d < -EPS ? "sap-icon://trend-down" : "");
+          // }
+          // if (i === iLast && n > 2) {
+          //   var dO = fnRound(aPo[i] - aPo[0]);
+          //   // Start: added by SI2 Tech - "original" renamed to "original scope"
+          //   oCard.deltaOrigText = that._vcFmtDelta(dO) + " vs V" + aVer[0] + " (original scope)";
+          //   // End: added by SI2 Tech
+          //   oCard.deltaOrigState = fnDeltaState(dO);
+          // }
+          // Start: added by SI2 Tech - summary box: basic / charges rows, movements vs previous version, net impact on basic
+          var oMv = aMove[i];
+          var bNotSaved = aPo[i] === 0 && aBasic[i] !== 0;
+          oCard.poAmt = aPo[i];
+          oCard.basicAmt = aBasic[i];
+          oCard.chargesAmt = bNotSaved ? null : fnRound(aPo[i] - aBasic[i]);
+          oCard.basicValText = that._vcFmt(aBasic[i]);
+          oCard.chargesValText = bNotSaved ? "Not saved yet" : that._vcFmt(oCard.chargesAmt);
+          oCard.poAmtTip = bPoFiltered ? "Net landed cost of the selected PO(s) in this version"
+                                       : "PO amount on the approval form of this version";
+          if (bPoFiltered && !Object.keys(aVendorsIn[i]).length) { oCard.poNosText = "No lines on the selected PO(s)"; }
+          oCard.move = { inc: fnRound(oMv.inc), dec: fnRound(oMv.dec), add: fnRound(oMv.add), rem: fnRound(oMv.rem) };
+          oCard.moveHdrText = i > 0 ? "Changes vs V" + aVer[i - 1] + " (basic amount)" : "Changes (basic amount)";
+          oCard.incText = i > 0 ? that._vcFmtDelta(oCard.move.inc) : "–";
+          oCard.incState = i > 0 ? fnDeltaState(oCard.move.inc) : "None";
+          oCard.decText = i > 0 ? that._vcFmtDelta(-oCard.move.dec) : "–";
+          oCard.decState = i > 0 ? fnDeltaState(-oCard.move.dec) : "None";
+          oCard.addText = i > 0 ? that._vcFmtDelta(oCard.move.add) : "–";
+          oCard.addState = i > 0 ? fnDeltaState(oCard.move.add) : "None";
+          oCard.remText = i > 0 ? that._vcFmtDelta(-oCard.move.rem) : "–";
+          oCard.remState = i > 0 ? fnDeltaState(-oCard.move.rem) : "None";
+          oCard.netImpact = null;
+          oCard.netImpactFirst = null;
+          oCard.deltaText = "–";
+          oCard.deltaState = "None";
+          oCard.deltaIcon = "";
           if (i > 0) {
-            var d = fnRound(aPo[i] - aPo[i - 1]);
-            oCard.deltaText = that._vcFmtDelta(d) + " vs V" + aVer[i - 1];
-            oCard.deltaState = fnDeltaState(d);
-            oCard.deltaIcon = d > EPS ? "sap-icon://trend-up" : (d < -EPS ? "sap-icon://trend-down" : "");
+            var dB = fnRound(aBasic[i] - aBasic[i - 1]);
+            oCard.netImpact = dB;
+            oCard.netImpactFirst = fnRound(aBasic[i] - aBasic[0]);
+            oCard.deltaText = that._vcFmtDelta(dB) + " vs V" + aVer[i - 1];
+            oCard.deltaState = fnDeltaState(dB);
+            oCard.deltaIcon = dB > EPS ? "sap-icon://trend-up" : (dB < -EPS ? "sap-icon://trend-down" : "");
           }
           if (i === iLast && n > 2) {
-            var dO = fnRound(aPo[i] - aPo[0]);
-            // Start: added by SI2 Tech - "original" renamed to "original scope"
-            oCard.deltaOrigText = that._vcFmtDelta(dO) + " vs V" + aVer[0] + " (original scope)";
-            // End: added by SI2 Tech
-            oCard.deltaOrigState = fnDeltaState(dO);
+            var dBO = fnRound(aBasic[i] - aBasic[0]);
+            oCard.deltaOrigText = that._vcFmtDelta(dBO) + " vs V" + aVer[0] + " (original scope)";
+            oCard.deltaOrigState = fnDeltaState(dBO);
           }
+          // End: added by SI2 Tech
           return oCard;
         });
 
@@ -952,6 +1222,7 @@ sap.ui.define(
           { label: "PR Item", property: "PrItem", type: "String" },
           { label: "Item Code", property: "Material", type: "String" },
           { label: "Description", property: "MaterialDescription", type: "String" },
+          { label: "Long Text", property: "LongText", type: "String", width: 60, wrap: true }, // SI2 Tech: long text against the line
           { label: "Vendor", property: "VendorName", type: "String" },
           { label: "UoM", property: "Uom", type: "String" },
           { label: "Change", property: "statusText", type: "String" }
@@ -1069,41 +1340,86 @@ sap.ui.define(
           ["Plant", oCur.PlantDesc || ""],
           ["Status (V" + aVer[iLast] + ")", oCur.Status || ""],
           ["Versions Compared", sVersionsText],
+          ["Purchase Orders", this._vcPoSelectionText()], // SI2 Tech: PO filter
           ["Lines Changed", iChanged + " of " + iLines]
         ]);
 
         // ---- 2. Version summary ----
+        // SI2 Tech: replaced by the block below - amounts follow the PO selection (from the summary boxes),
+        // net impact is on the basic amount and the basic-amount movements are listed per version
+        // var sVerRows = aSnaps.map(function (s, i) {
+        //   var h = s.header || {};
+        //   var fPo = parseFloat(s.form.CurrentPoAmt) || 0;
+        //   var fPrev = i > 0 ? (parseFloat(aSnaps[i - 1].form.CurrentPoAmt) || 0) : null;
+        //   var fOrig = parseFloat(aSnaps[0].form.CurrentPoAmt) || 0;
+        //   // Start: added by SI2 Tech
+        //   var fLine = typeof oGrand["t" + i] === "number" ? oGrand["t" + i] : 0;
+        //   var fCharges = Math.round((fPo - fLine) * 100) / 100;
+        //   // End: added by SI2 Tech
+        //   return "<tr>" +
+        //     "<td><b>" + fnEsc(that._vcVersionLabel(s.version)) + "</b></td>" +
+        //     "<td>" + fnEsc(h.Status || "") + "</td>" +
+        //     "<td>" + fnEsc(i === 0 ? (h.CreatedBy || "") : (h.AmendedBy || "")) + "</td>" +
+        //     "<td>" + fnEsc(i === 0 ? fnDate(h.BiDate) : fnDate(h.AmendedOn)) + "</td>" +
+        //     "<td class='wrap'>" + fnEsc(s.version > 1 ? (h.AmendedReason || s.form.AmendedReason || "") : "") + "</td>" +
+        //     "<td class='wrap'>" + fnEsc(((aCards[i] || {}).poNos || []).join(", ")) + "</td>" +
+        //     "<td class='num'>" + fnNum(oGrand["t" + i]) + "</td>" +
+        //     "<td class='num'><b>" + fnNum(fPo) + "</b></td>" +
+        //     // Start: added by SI2 Tech - Charges & GST column
+        //     "<td class='num'>" + fnNum(fCharges) + "</td>" +
+        //     // End: added by SI2 Tech
+        //     "<td class='num'>" + (i > 0 ? fnDelta(Math.round((fPo - fPrev) * 100) / 100) : "Baseline") + "</td>" +
+        //     "<td class='num'>" + (i > 0 ? fnDelta(Math.round((fPo - fOrig) * 100) / 100) : "") + "</td>" +
+        //     "</tr>";
+        // }).join("");
+        // var sVerSummary = "<div class='section'><div class='sec-title'>Version Summary</div><table class='data'><thead><tr>" +
+        //   "<th>Version</th><th>Status</th><th>Created / Amended By</th><th>Date</th><th>Reason for Amendment</th><th>PO No.</th>" +
+        //   // Start: added by SI2 Tech - header renamed to "PO Amount (Net Landed Cost)" + new "Charges & GST" column
+        //   "<th>Line Total (Qty &times; Rate)</th><th>PO Amount (Net Landed Cost)</th><th>Charges &amp; GST</th><th>PO Amount change vs previous version</th><th>PO Amount change vs V" + aVer[0] + "</th>" + // SI2 Tech: worded headers
+        //   // End: added by SI2 Tech
+        //   "</tr></thead><tbody>" + sVerRows + "</tbody></table></div>";
+        // Start: added by SI2 Tech - version summary from the summary boxes (PO filter aware)
         var sVerRows = aSnaps.map(function (s, i) {
           var h = s.header || {};
-          var fPo = parseFloat(s.form.CurrentPoAmt) || 0;
-          var fPrev = i > 0 ? (parseFloat(aSnaps[i - 1].form.CurrentPoAmt) || 0) : null;
-          var fOrig = parseFloat(aSnaps[0].form.CurrentPoAmt) || 0;
-          // Start: added by SI2 Tech
-          var fLine = typeof oGrand["t" + i] === "number" ? oGrand["t" + i] : 0;
-          var fCharges = Math.round((fPo - fLine) * 100) / 100;
-          // End: added by SI2 Tech
+          var oC = aCards[i] || {};
           return "<tr>" +
             "<td><b>" + fnEsc(that._vcVersionLabel(s.version)) + "</b></td>" +
             "<td>" + fnEsc(h.Status || "") + "</td>" +
             "<td>" + fnEsc(i === 0 ? (h.CreatedBy || "") : (h.AmendedBy || "")) + "</td>" +
             "<td>" + fnEsc(i === 0 ? fnDate(h.BiDate) : fnDate(h.AmendedOn)) + "</td>" +
             "<td class='wrap'>" + fnEsc(s.version > 1 ? (h.AmendedReason || s.form.AmendedReason || "") : "") + "</td>" +
-            "<td class='wrap'>" + fnEsc(((aCards[i] || {}).poNos || []).join(", ")) + "</td>" +
-            "<td class='num'>" + fnNum(oGrand["t" + i]) + "</td>" +
-            "<td class='num'><b>" + fnNum(fPo) + "</b></td>" +
-            // Start: added by SI2 Tech - Charges & GST column
-            "<td class='num'>" + fnNum(fCharges) + "</td>" +
-            // End: added by SI2 Tech
-            "<td class='num'>" + (i > 0 ? fnDelta(Math.round((fPo - fPrev) * 100) / 100) : "Baseline") + "</td>" +
-            "<td class='num'>" + (i > 0 ? fnDelta(Math.round((fPo - fOrig) * 100) / 100) : "") + "</td>" +
+            "<td class='wrap'>" + fnEsc((oC.poNos || []).join(", ")) + "</td>" +
+            "<td class='num'><b>" + fnNum(oC.poAmt) + "</b></td>" +
+            "<td class='num'>" + fnNum(oC.basicAmt) + "</td>" +
+            "<td class='num'>" + (oC.chargesAmt === null ? "Not saved yet" : fnNum(oC.chargesAmt)) + "</td>" +
             "</tr>";
+        }).join("");
+        var sMoveRows = aSnaps.map(function (s, i) {
+          var oC = aCards[i] || {};
+          var oM = oC.move || {};
+          if (i === 0) {
+            return "<tr><td><b>" + fnEsc(that._vcVersionLabel(s.version)) + "</b></td>" +
+              "<td class='num'>&ndash;</td><td class='num'>&ndash;</td><td class='num'>&ndash;</td><td class='num'>&ndash;</td>" +
+              "<td class='num'>&ndash;</td><td class='num'>&ndash;</td></tr>";
+          }
+          return "<tr><td><b>" + fnEsc(that._vcVersionLabel(s.version)) + "</b></td>" +
+            "<td class='num'>" + fnDelta(oM.inc) + "</td>" +
+            "<td class='num'>" + fnDelta(-oM.dec) + "</td>" +
+            "<td class='num'>" + fnDelta(oM.add) + "</td>" +
+            "<td class='num'>" + fnDelta(-oM.rem) + "</td>" +
+            "<td class='num'><b>" + fnDelta(oC.netImpact) + "</b></td>" +
+            "<td class='num'>" + fnDelta(oC.netImpactFirst) + "</td></tr>";
         }).join("");
         var sVerSummary = "<div class='section'><div class='sec-title'>Version Summary</div><table class='data'><thead><tr>" +
           "<th>Version</th><th>Status</th><th>Created / Amended By</th><th>Date</th><th>Reason for Amendment</th><th>PO No.</th>" +
-          // Start: added by SI2 Tech - header renamed to "PO Amount (Net Landed Cost)" + new "Charges & GST" column
-          "<th>Line Total (Qty &times; Rate)</th><th>PO Amount (Net Landed Cost)</th><th>Charges &amp; GST</th><th>PO Amount change vs previous version</th><th>PO Amount change vs V" + aVer[0] + "</th>" + // SI2 Tech: worded headers
-          // End: added by SI2 Tech
-          "</tr></thead><tbody>" + sVerRows + "</tbody></table></div>";
+          "<th>PO Amount (Net Landed Cost)</th><th>Basic Amount (Qty &times; Rate)</th><th>Charges &amp; GST</th>" +
+          "</tr></thead><tbody>" + sVerRows + "</tbody></table></div>" +
+          "<div class='section'><div class='sec-title'>Change vs Previous Version (Basic Amount)</div><table class='data'><thead><tr>" +
+          "<th>Version</th><th>Increase in existing line items</th><th>Decrease in existing line items</th>" +
+          "<th>New line items added</th><th>Line items removed</th><th>Net impact vs previous version</th>" +
+          "<th>Net impact vs V" + aVer[0] + "</th>" +
+          "</tr></thead><tbody>" + sMoveRows + "</tbody></table></div>";
+        // End: added by SI2 Tech
 
         // ---- 3. What changed (plain-language list) ----
         var aChanges = [];
@@ -1138,65 +1454,127 @@ sap.ui.define(
             ? "<table class='data'><thead><tr><th>PR / Item</th><th>Item Code</th><th>Description</th><th>Vendor</th><th>Change</th><th>Details</th></tr></thead><tbody>" + aChanges.join("") + "</tbody></table>"
             : "<div class='empty'>No line-level changes between the compared versions.</div>") + "</div>";
 
-        // ---- 4. Line item comparison (same layout as the dialog) ----
-        var aGroupCols = aVer.map(function (v, i) {
-          var a = ["PO No.", "Qty", "Unit Rate", "Total"];
-          // Start: added by SI2 Tech - qty / rate change columns
-          if (i > 0) {
-            a.push("Qty change vs V" + aVer[i - 1], "Rate change vs V" + aVer[i - 1], "Total change vs V" + aVer[i - 1]);
-          }
-          if (i === iLast && n > 2) {
-            a.push("Qty change vs V" + aVer[0], "Rate change vs V" + aVer[0], "Total change vs V" + aVer[0]);
-          }
-          // End: added by SI2 Tech
-          return a;
-        });
-        var sHead1 = "<tr><th rowspan='2' class='c-item'>PR No. / Item</th><th rowspan='2'>Item Code</th><th rowspan='2' class='c-vendor'>Vendor</th><th rowspan='2'>UoM</th><th rowspan='2'>Change</th>" +
-          aVer.map(function (v, i) { return "<th colspan='" + aGroupCols[i].length + "' class='grp'>" + fnEsc(that._vcVersionLabel(v)) + "</th>"; }).join("") + "</tr>";
-        var sHead2 = "<tr>" + aGroupCols.map(function (a) { return a.map(function (h) { return "<th>" + h + "</th>"; }).join(""); }).join("") + "</tr>";
-
-        var fnCells = function (x, bItem) {
-          return aVer.map(function (v, i) {
-            var fnCell = function (sVal, sState) {
-              var sCls = bItem ? (mStateCls[x[sState]] || "") : "";
-              return "<td class='num " + sCls + "'>" + fnNum(x[sVal]) + "</td>";
-            };
-            var sPo = x["p" + i] === "NA" ? "&ndash;" : fnEsc(x["p" + i] || "");
-            var s = "<td class='" + (bItem ? (mStateCls[x["ps" + i]] || "") : "") + "'>" + sPo + "</td>" +
-              fnCell("q" + i, "qs" + i) + fnCell("r" + i, "rs" + i) + fnCell("t" + i, "ts" + i);
-            // Start: added by SI2 Tech - qty / rate change columns
-            var fnQty = function (v) { var t = fnDelta(v); return t && x.Uom ? t + " " + fnEsc(x.Uom) : t; };
-            if (i > 0) {
-              s += "<td class='num'>" + fnQty(x["dq" + i]) + "</td>" +
-                   "<td class='num'>" + fnDelta(x["dr" + i]) + "</td>" +
-                   "<td class='num'>" + fnDelta(x["d" + i]) + "</td>";
-            }
-            if (i === iLast && n > 2) {
-              s += "<td class='num'>" + fnQty(x.dqO) + "</td>" +
-                   "<td class='num'>" + fnDelta(x.drO) + "</td>" +
-                   "<td class='num'>" + fnDelta(x.dO) + "</td>";
-            }
-            // End: added by SI2 Tech
-            return s;
-          }).join("");
+        // ---- 4. Line item comparison ----
+        // SI2 Tech: replaced by the block below - the wide version-by-version table needed very small text on A4
+        // var aGroupCols = aVer.map(function (v, i) {
+        //   var a = ["PO No.", "Qty", "Unit Rate", "Total"];
+        //   // Start: added by SI2 Tech - qty / rate change columns
+        //   if (i > 0) {
+        //     a.push("Qty change vs V" + aVer[i - 1], "Rate change vs V" + aVer[i - 1], "Total change vs V" + aVer[i - 1]);
+        //   }
+        //   if (i === iLast && n > 2) {
+        //     a.push("Qty change vs V" + aVer[0], "Rate change vs V" + aVer[0], "Total change vs V" + aVer[0]);
+        //   }
+        //   // End: added by SI2 Tech
+        //   return a;
+        // });
+        // var sHead1 = "<tr><th rowspan='2' class='c-item'>PR No. / Item</th><th rowspan='2'>Item Code</th><th rowspan='2' class='c-vendor'>Vendor</th><th rowspan='2'>UoM</th><th rowspan='2'>Change</th>" +
+        //   aVer.map(function (v, i) { return "<th colspan='" + aGroupCols[i].length + "' class='grp'>" + fnEsc(that._vcVersionLabel(v)) + "</th>"; }).join("") + "</tr>";
+        // var sHead2 = "<tr>" + aGroupCols.map(function (a) { return a.map(function (h) { return "<th>" + h + "</th>"; }).join(""); }).join("") + "</tr>";
+        //
+        // var fnCells = function (x, bItem) {
+        //   return aVer.map(function (v, i) {
+        //     var fnCell = function (sVal, sState) {
+        //       var sCls = bItem ? (mStateCls[x[sState]] || "") : "";
+        //       return "<td class='num " + sCls + "'>" + fnNum(x[sVal]) + "</td>";
+        //     };
+        //     var sPo = x["p" + i] === "NA" ? "&ndash;" : fnEsc(x["p" + i] || "");
+        //     var s = "<td class='" + (bItem ? (mStateCls[x["ps" + i]] || "") : "") + "'>" + sPo + "</td>" +
+        //       fnCell("q" + i, "qs" + i) + fnCell("r" + i, "rs" + i) + fnCell("t" + i, "ts" + i);
+        //     // Start: added by SI2 Tech - qty / rate change columns
+        //     var fnQty = function (v) { var t = fnDelta(v); return t && x.Uom ? t + " " + fnEsc(x.Uom) : t; };
+        //     if (i > 0) {
+        //       s += "<td class='num'>" + fnQty(x["dq" + i]) + "</td>" +
+        //            "<td class='num'>" + fnDelta(x["dr" + i]) + "</td>" +
+        //            "<td class='num'>" + fnDelta(x["d" + i]) + "</td>";
+        //     }
+        //     if (i === iLast && n > 2) {
+        //       s += "<td class='num'>" + fnQty(x.dqO) + "</td>" +
+        //            "<td class='num'>" + fnDelta(x.drO) + "</td>" +
+        //            "<td class='num'>" + fnDelta(x.dO) + "</td>";
+        //     }
+        //     // End: added by SI2 Tech
+        //     return s;
+        //   }).join("");
+        // };
+        // var aRows = [];
+        // aTree.forEach(function (p) {
+        //   if (p.NodeType === "PR") {
+        //     aRows.push("<tr class='pr-row'><td colspan='4'>" + fnEsc(p.label) + "</td><td>" + fnEsc(p.statusText) + "</td>" + fnCells(p, false) + "</tr>");
+        //     p.children.forEach(function (c) {
+        //       aRows.push("<tr class='item-row'><td class='wrap'>" + fnEsc(c.label) + "</td><td>" + fnEsc(c.Material) + "</td><td class='wrap'>" +
+        //         fnEsc(c.VendorName) + "</td><td>" + fnEsc(c.Uom) + "</td><td><span class='tag " + (mStateCls[c.statusState] || "") + "'>" +
+        //         fnEsc(c.statusText) + "</span></td>" + fnCells(c, true) + "</tr>");
+        //     });
+        //   } else {
+        //     aRows.push("<tr class='sum-row'><td colspan='5'>" + fnEsc(p.label) + "</td>" + fnCells(p, false) + "</tr>");
+        //   }
+        // });
+        // var sLines = "<div class='section'><div class='sec-title'>Line Item Comparison</div>" +
+        //   "<div class='note'>Qty = ordered (split) quantity &middot; Unit Rate = negotiated price &middot; Total = Qty &times; Unit Rate &middot; " +
+        //   "<span class='tag chg'>changed vs previous version</span> <span class='tag new'>added</span> <span class='tag rem'>removed</span> &middot; &ndash; = line not in that version</div>" +
+        //   "<table class='data qcs-table" + (aGroupCols.reduce(function (s, a) { return s + a.length; }, 0) > 14 ? " dense" : "") + "'><thead>" + sHead1 + sHead2 + "</thead><tbody>" + aRows.join("") + "</tbody></table></div>";
+        // Start: added by SI2 Tech - A4-readable line item comparison
+        // Fixed 8 columns whatever the number of versions: every line gets a heading row and one row per version.
+        var fnQtyU = function (v, sUom) {
+          return typeof v === "number" ? fnNum(v) + (sUom ? " " + fnEsc(sUom) : "") : "&ndash;";
         };
-        var aRows = [];
+        var fnVal = function (v) { return typeof v === "number" ? fnNum(v) : "&ndash;"; };
+        var fnChg = function (v, sUom) {
+          var t = fnDelta(v);
+          return t ? t + (sUom ? " " + fnEsc(sUom) : "") : "&ndash;";
+        };
+        var fnVerTotals = function (x) {
+          return aVer.map(function (v, i) {
+            return "<span class='st'>V" + v + ": " + (typeof x["t" + i] === "number" ? fnNum(x["t" + i]) : "&ndash;") + "</span>";
+          }).join(" ");
+        };
+        var aLineRows = [];
         aTree.forEach(function (p) {
-          if (p.NodeType === "PR") {
-            aRows.push("<tr class='pr-row'><td colspan='4'>" + fnEsc(p.label) + "</td><td>" + fnEsc(p.statusText) + "</td>" + fnCells(p, false) + "</tr>");
-            p.children.forEach(function (c) {
-              aRows.push("<tr class='item-row'><td class='wrap'>" + fnEsc(c.label) + "</td><td>" + fnEsc(c.Material) + "</td><td class='wrap'>" +
-                fnEsc(c.VendorName) + "</td><td>" + fnEsc(c.Uom) + "</td><td><span class='tag " + (mStateCls[c.statusState] || "") + "'>" +
-                fnEsc(c.statusText) + "</span></td>" + fnCells(c, true) + "</tr>");
+          if (p.NodeType !== "PR") { return; }
+          var sPrRow = "<tr class='pr-row'><td colspan='8'>" + fnEsc(p.label) + " &middot; " + fnEsc(p.statusText) + "</td></tr>";
+          p.children.forEach(function (c, iChild) {
+            var sHead = "<tr class='line-row'><td colspan='8'>" +
+              "<span class='tag " + (mStateCls[c.statusState] || "") + "'>" + fnEsc(c.statusText) + "</span> " +
+              "<b>" + fnEsc((c.PrNo ? c.PrNo + " / " : "") + c.PrItem) + "</b> &middot; " + fnEsc(c.MaterialDescription) +
+              " &middot; Item code " + fnEsc(c.Material) + " &middot; " + fnEsc(c.VendorName) +
+              (c.Uom ? " &middot; UoM " + fnEsc(c.Uom) : "") + "</td></tr>";
+            var aVerRows = aVer.map(function (v, i) {
+              var bIn = typeof c["q" + i] === "number";
+              var fnCls = function (sState) { return mStateCls[c[sState]] || ""; };
+              return "<tr><td class='ver'>" + fnEsc(that._vcVersionLabel(v)) + "</td>" +
+                "<td class='" + fnCls("ps" + i) + "'>" + (bIn ? (fnEsc(c["p" + i]) || "Not created yet") : "&ndash;") + "</td>" +
+                "<td class='num " + fnCls("qs" + i) + "'>" + fnQtyU(c["q" + i], c.Uom) + "</td>" +
+                "<td class='num " + fnCls("rs" + i) + "'>" + fnVal(c["r" + i]) + "</td>" +
+                "<td class='num " + fnCls("ts" + i) + "'>" + fnVal(c["t" + i]) + "</td>" +
+                "<td class='num'>" + (i > 0 ? fnChg(c["dq" + i], c.Uom) : "&ndash;") + "</td>" +
+                "<td class='num'>" + (i > 0 ? fnChg(c["dr" + i]) : "&ndash;") + "</td>" +
+                "<td class='num'>" + (i > 0 ? fnChg(c["d" + i]) : "&ndash;") + "</td></tr>";
             });
-          } else {
-            aRows.push("<tr class='sum-row'><td colspan='5'>" + fnEsc(p.label) + "</td>" + fnCells(p, false) + "</tr>");
-          }
+            if (n > 2) {
+              aVerRows.push("<tr class='orig-row'><td colspan='5'>Change V" + aVer[iLast] + " vs V" + aVer[0] + " (original scope)</td>" +
+                "<td class='num'>" + fnChg(c.dqO, c.Uom) + "</td><td class='num'>" + fnChg(c.drO) + "</td>" +
+                "<td class='num'>" + fnChg(c.dO) + "</td></tr>");
+            }
+            // One tbody per line: kept together on one page; the PR heading stays with its first line
+            aLineRows.push("<tbody class='grp'>" + (iChild === 0 ? sPrRow : "") + sHead + aVerRows.join("") + "</tbody>");
+          });
+          aLineRows.push("<tbody class='grp'><tr class='sub-row'><td colspan='8'>PR subtotal (Qty &times; Rate) &nbsp; " +
+            fnVerTotals(p) + "</td></tr></tbody>");
         });
+        var oTotalRow = aTree.filter(function (x) { return x.NodeType === "TOTAL"; })[0];
+        if (oTotalRow) {
+          aLineRows.push("<tbody class='grp'><tr class='sum-row'><td colspan='8'>Grand Total (Qty &times; Rate) &nbsp; " +
+            fnVerTotals(oTotalRow) + "</td></tr></tbody>");
+        }
         var sLines = "<div class='section'><div class='sec-title'>Line Item Comparison</div>" +
-          "<div class='note'>Qty = ordered (split) quantity &middot; Unit Rate = negotiated price &middot; Total = Qty &times; Unit Rate &middot; " +
-          "<span class='tag chg'>changed vs previous version</span> <span class='tag new'>added</span> <span class='tag rem'>removed</span> &middot; &ndash; = line not in that version</div>" +
-          "<table class='data qcs-table" + (aGroupCols.reduce(function (s, a) { return s + a.length; }, 0) > 14 ? " dense" : "") + "'><thead>" + sHead1 + sHead2 + "</thead><tbody>" + aRows.join("") + "</tbody></table></div>";
+          "<div class='note'>Each line shows one row per version. Qty = ordered (split) quantity &middot; Unit Rate = negotiated price &middot; " +
+          "Total = Qty &times; Unit Rate &middot; changes are against the previous compared version &middot; " +
+          "<span class='tag chg'>changed</span> <span class='tag new'>added</span> <span class='tag rem'>removed</span> &middot; " +
+          "&ndash; = line not in that version</div>" +
+          "<table class='data lines'><thead><tr><th>Version</th><th>PO No.</th><th>Qty</th><th>Unit Rate</th><th>Total</th>" +
+          "<th>Qty change</th><th>Rate change</th><th>Total change</th></tr></thead>" + aLineRows.join("") + "</table></div>";
+        // End: added by SI2 Tech
 
         // ---- 5. Approval history of the compared versions ----
         var mVer = {};
@@ -1227,40 +1605,79 @@ sap.ui.define(
           }).join("") + "</div>";
         }
 
+        // SI2 Tech: replaced by the block below - larger print sizes for A4 (no text below 12px)
+        // var sCSS = [
+        //   "@page { size: A4 landscape; margin: 12mm 10mm 10mm 10mm; }",
+        //   "* { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }",
+        //   "body { font-family: 'SAP72', Arial, Helvetica, sans-serif; font-size: 12px; color: #000; background: #FFF; }",
+        //   ".page-title { font-size: 22px; font-weight: bold; margin-bottom: 14px; padding-bottom: 6px; border-bottom: 3px solid #1A6496; }",
+        //   ".page-meta { font-size: 11px; color: #555; margin-bottom: 16px; }",
+        //   ".section { margin-bottom: 14px; border: 1px solid #CCC; }",
+        //   ".sec-title { background: #1A6496; color: #FFF; font-size: 16px; font-weight: bold; padding: 8px 10px; }",
+        //   ".sub-title { background: #2E75B6; color: #FFF; font-size: 14px; font-weight: bold; padding: 6px 10px; }",
+        //   ".phase-label { font-size: 12px; font-weight: bold; color: #1A6496; padding: 6px 10px 4px; background: #EEF5FB; border-bottom: 1px solid #CCC; }",
+        //   ".note { font-size: 11px; color: #333; padding: 6px 10px; background: #FAFAFA; border-bottom: 1px solid #CCC; }",
+        //   ".empty { padding: 10px; font-style: italic; }",
+        //   "table { border-collapse: collapse; width: 100%; background: #FFF; }",
+        //   ".kv td { border: 1px solid #CCC; padding: 8px 10px; vertical-align: top; }",
+        //   ".lbl { font-weight: bold; width: 220px; background: #D9E8F5; white-space: nowrap; }",
+        //   ".data thead th { background: #D9E8F5; font-weight: bold; text-align: center; border: 1px solid #CCC; padding: 7px 8px; }",
+        //   ".data tbody td { border: 1px solid #CCC; padding: 6px 8px; vertical-align: middle; white-space: nowrap; }",
+        //   ".data .wrap { white-space: normal; word-break: break-word; }",
+        //   ".data .grp { background: #BCD6EE; }",
+        //   ".qcs-table thead th, .qcs-table tbody td { font-size: 10px; padding: 5px; }",
+        //   ".qcs-table.dense thead th, .qcs-table.dense tbody td { font-size: 8px; padding: 3px; }",
+        //   ".qcs-table th.c-item { min-width: 120px; } .qcs-table th.c-vendor { min-width: 80px; }", // SI2 Tech: keep text columns readable
+        //   ".qcs-table td.wrap { word-break: normal; overflow-wrap: break-word; }",
+        //   ".qcs-table .pr-row td { background: #1A6496; color: #FFF; font-weight: bold; font-size: 11px; }",
+        //   ".qcs-table .pr-row .up, .qcs-table .pr-row .down { color: #FFF; }",
+        //   ".qcs-table .sum-row td { background: #E8F4E8; font-weight: bold; }",
+        //   ".num { text-align: right; }",
+        //   "td.chg { background: #FFF1D6; font-weight: bold; } td.new { background: #E3F4E3; } td.rem { background: #FBE3E3; }",
+        //   ".tag { padding: 1px 6px; border-radius: 3px; font-size: 10px; white-space: nowrap; }",
+        //   ".tag.chg { background: #FFF1D6; color: #8A5300; } .tag.new { background: #E3F4E3; color: #256F3A; } .tag.rem { background: #FBE3E3; color: #AA0808; }",
+        //   ".up { color: #AA0808; font-weight: bold; } .down { color: #256F3A; font-weight: bold; }",
+        //   "tr { page-break-inside: avoid; } thead { display: table-header-group; }",
+        //   ".sec-title, .sub-title, .phase-label, .note { page-break-after: avoid; break-after: avoid; }"
+        // ].join(" ");
+        // Start: added by SI2 Tech - A4 print layout: body 13px, tables 12px, numbers never wrap, one line kept on one page
         var sCSS = [
-          "@page { size: A4 landscape; margin: 12mm 10mm 10mm 10mm; }",
+          "@page { size: A4 landscape; margin: 12mm 10mm 12mm 10mm; }",
           "* { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }",
-          "body { font-family: 'SAP72', Arial, Helvetica, sans-serif; font-size: 12px; color: #000; background: #FFF; }",
-          ".page-title { font-size: 22px; font-weight: bold; margin-bottom: 14px; padding-bottom: 6px; border-bottom: 3px solid #1A6496; }",
-          ".page-meta { font-size: 11px; color: #555; margin-bottom: 16px; }",
-          ".section { margin-bottom: 14px; border: 1px solid #CCC; }",
+          "body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; line-height: 1.35; color: #000; background: #FFF; }",
+          ".page-title { font-size: 20px; font-weight: bold; padding-bottom: 6px; border-bottom: 3px solid #1A6496; }",
+          ".page-meta { font-size: 12px; color: #333; margin: 6px 0 14px; }",
+          ".section { margin-bottom: 16px; border: 1px solid #BBB; }",
           ".sec-title { background: #1A6496; color: #FFF; font-size: 16px; font-weight: bold; padding: 8px 10px; }",
           ".sub-title { background: #2E75B6; color: #FFF; font-size: 14px; font-weight: bold; padding: 6px 10px; }",
-          ".phase-label { font-size: 12px; font-weight: bold; color: #1A6496; padding: 6px 10px 4px; background: #EEF5FB; border-bottom: 1px solid #CCC; }",
-          ".note { font-size: 11px; color: #333; padding: 6px 10px; background: #FAFAFA; border-bottom: 1px solid #CCC; }",
+          ".phase-label { font-size: 13px; font-weight: bold; color: #1A6496; padding: 6px 10px; background: #EEF5FB; border-bottom: 1px solid #BBB; }",
+          ".note { font-size: 12px; padding: 7px 10px; background: #F4F7FA; border-bottom: 1px solid #BBB; }",
           ".empty { padding: 10px; font-style: italic; }",
           "table { border-collapse: collapse; width: 100%; background: #FFF; }",
-          ".kv td { border: 1px solid #CCC; padding: 8px 10px; vertical-align: top; }",
-          ".lbl { font-weight: bold; width: 220px; background: #D9E8F5; white-space: nowrap; }",
-          ".data thead th { background: #D9E8F5; font-weight: bold; text-align: center; border: 1px solid #CCC; padding: 7px 8px; }",
-          ".data tbody td { border: 1px solid #CCC; padding: 6px 8px; vertical-align: middle; white-space: nowrap; }",
-          ".data .wrap { white-space: normal; word-break: break-word; }",
-          ".data .grp { background: #BCD6EE; }",
-          ".qcs-table thead th, .qcs-table tbody td { font-size: 10px; padding: 5px; }",
-          ".qcs-table.dense thead th, .qcs-table.dense tbody td { font-size: 8px; padding: 3px; }",
-          ".qcs-table th.c-item { min-width: 120px; } .qcs-table th.c-vendor { min-width: 80px; }", // SI2 Tech: keep text columns readable
-          ".qcs-table td.wrap { word-break: normal; overflow-wrap: break-word; }",
-          ".qcs-table .pr-row td { background: #1A6496; color: #FFF; font-weight: bold; font-size: 11px; }",
-          ".qcs-table .pr-row .up, .qcs-table .pr-row .down { color: #FFF; }",
-          ".qcs-table .sum-row td { background: #E8F4E8; font-weight: bold; }",
-          ".num { text-align: right; }",
+          ".kv td { border: 1px solid #BBB; padding: 7px 10px; font-size: 13px; vertical-align: top; }",
+          ".lbl { font-weight: bold; width: 230px; background: #D9E8F5; }",
+          ".data th { background: #D9E8F5; font-size: 12px; font-weight: bold; text-align: center; vertical-align: bottom; border: 1px solid #BBB; padding: 7px 8px; }",
+          ".data td { font-size: 12px; border: 1px solid #BBB; padding: 6px 8px; vertical-align: top; }",
+          ".data .wrap { white-space: normal; overflow-wrap: break-word; }",
+          ".num { text-align: right; white-space: nowrap; }",
+          ".lines td.ver { font-weight: bold; white-space: nowrap; }",
+          ".data td:first-child b { white-space: nowrap; }",
+          ".lines .pr-row td { background: #1A6496; color: #FFF; font-weight: bold; font-size: 13px; padding: 7px 8px; }",
+          ".lines .line-row td { background: #EEF4FA; font-size: 12px; padding: 7px 8px; }",
+          ".lines .orig-row td { background: #FAFAFA; font-style: italic; }",
+          ".lines .sub-row td { background: #F2F2F2; font-weight: bold; }",
+          ".lines .sum-row td { background: #E3F4E3; font-weight: bold; font-size: 13px; }",
+          ".st { display: inline-block; margin-right: 16px; white-space: nowrap; }",
           "td.chg { background: #FFF1D6; font-weight: bold; } td.new { background: #E3F4E3; } td.rem { background: #FBE3E3; }",
-          ".tag { padding: 1px 6px; border-radius: 3px; font-size: 10px; white-space: nowrap; }",
+          ".tag { padding: 1px 6px; border-radius: 3px; font-size: 12px; font-weight: bold; white-space: nowrap; }",
           ".tag.chg { background: #FFF1D6; color: #8A5300; } .tag.new { background: #E3F4E3; color: #256F3A; } .tag.rem { background: #FBE3E3; color: #AA0808; }",
           ".up { color: #AA0808; font-weight: bold; } .down { color: #256F3A; font-weight: bold; }",
-          "tr { page-break-inside: avoid; } thead { display: table-header-group; }",
-          ".sec-title, .sub-title, .phase-label, .note { page-break-after: avoid; break-after: avoid; }"
+          "thead { display: table-header-group; }",
+          "tr, tbody.grp { page-break-inside: avoid; break-inside: avoid; }",
+          ".sec-title, .sub-title, .phase-label, .note { page-break-after: avoid; break-after: avoid; }",
+          ".sec-title, .note { page-break-inside: avoid; break-inside: avoid; }"
         ].join(" ");
+        // End: added by SI2 Tech
 
         var sHtml = "<!DOCTYPE html><html><head><meta charset='UTF-8'/><title>" + fnEsc(sTitle) + "</title><style>" + sCSS + "</style></head><body>" +
           "<div class='page-title'>" + fnEsc(sTitle) + "</div>" +

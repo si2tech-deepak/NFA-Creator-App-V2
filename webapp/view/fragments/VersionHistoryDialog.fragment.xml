@@ -246,12 +246,13 @@
                                             </Text>
                                             <!-- SI2 Tech: sap.m.Button instead of core:Icon - an Icon click is taken by the table cell -->
                                             <!-- SI2 Tech: Ariba check removed - the button is shown for Ariba NFAs as well -->
+                                            <!-- SI2 Tech: Unit LPP > 0 check removed - with no PO in this plant the popup lists the other plants -->
                                             <Button
                                                 icon="sap-icon://hint"
                                                 type="Transparent"
-                                                visible="{= !!${viewModel>Material} &amp;&amp; parseFloat(${viewModel>UnitLpp}) > 0 }"
+                                                visible="{= !!${viewModel>Material} }"
                                                 press="onVhLppInfoPress"
-                                                tooltip="Show the PO this Unit LPP comes from">
+                                                tooltip="Show the PO this Unit LPP comes from and the last PO in the other plants">
                                                 <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
                                             </Button>
                                         </HBox>

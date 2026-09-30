@@ -1,7 +1,7 @@
 /**
  * QCS page - PO info icons (mixed into QCS.controller.js via Object.assign).
  *   Unit LPP ⓘ          -> the PO the Unit LPP came from (NFA plant, highlighted) and the last PO
- *                          of the material from that PO's vendor in every other plant (QueryType 'LPP')
+ *                          of the material in every other plant, any vendor (QueryType 'LPP')
  *   Negotiated Price ⓘ  -> last 10 POs for material + vendor + plant (QueryType 'VENDOR')
  * Reads the read-only entity set /et_po_histSet.
  */
@@ -148,6 +148,18 @@ sap.ui.define([
               sNote = "No purchase order found for this material in plant " + (oItem.Plant || "") +
                 ". The Unit LPP was entered manually.";
               sType = "Warning";
+            // Start: added by SI2 Tech - no PO in the NFA plant: backend sends a placeholder row (MatchType NO_PO)
+            } else if (oPo.MatchType === "NO_PO") {
+              if (aRows.length > 1) {
+                sNote = "No purchase order for this material in plant " + (oItem.Plant || "") +
+                  ". Shown is the last PO of this material in the other plants.";
+              } else {
+                sNote = "No purchase order found for this material in plant " + (oItem.Plant || "") +
+                  " or in any other plant." + (fLpp > 0 ? " The Unit LPP was entered manually." : "");
+                sType = "Warning";
+                aRows = [];
+              }
+            // End: added by SI2 Tech
             //} else if (oPo.MatchType === "PRICE") {
             //  sNote = "A newer PO has been posted since this PR was pulled. Shown is the latest PO at the Unit LPP price.";
             } else if (oPo.MatchType === "NO_MATCH") {
@@ -158,15 +170,24 @@ sap.ui.define([
             oM.setProperty("/po", oPo);
             // Start: added by SI2 Tech - Unit LPP popup as a plant table
             // Seq 1 = the Unit LPP source PO of the NFA plant; the other rows are the last PO of this
-            // material from the same vendor in the other plants (newest first)
+            // material in the other plants, any vendor (newest first)
             var sNfaPlant = String(oItem.Plant || "").trim();
             aRows.forEach(function (r) {
               r.isNfaPlant = String(r.Plant || "").trim() === sNfaPlant;
               r.plantNameText = r.PlantName || "";
+              // SI2 Tech: NFA plant without PO - placeholder row
+              if (r.MatchType === "NO_PO") {
+                Object.assign(r, { poText: "No PO in this plant", dateText: "", VendorName: "", vendorNoText: "",
+                                   vendorText: "", priceText: "", priceUnitText: "" });
+              }
             });
-            if (oPo) {
-              oM.setProperty("/caption", "Last PO of this material from " + (oPo.VendorName || oPo.vendorNoText) +
-                " in each plant that bought it from this vendor. The NFA plant is highlighted.");
+            // SI2 Tech: replaced by the block below - the other plants are no longer limited to one vendor
+            // if (oPo) {
+            //   oM.setProperty("/caption", "Last PO of this material from " + (oPo.VendorName || oPo.vendorNoText) +
+            //     " in each plant that bought it from this vendor. The NFA plant is highlighted.");
+            // }
+            if (aRows.length) {
+              oM.setProperty("/caption", "Last PO of this material in each plant that bought it (any vendor). The NFA plant is highlighted.");
             }
             // End: added by SI2 Tech
           } else if (!aRows.length) {
