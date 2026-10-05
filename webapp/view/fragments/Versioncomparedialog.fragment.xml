@@ -11,6 +11,21 @@
         resizable="true"
         draggable="true"
         verticalScrolling="false">
+        <!-- Start: added by SI2 Tech - column chooser: ticked columns are shown (frozen on the left), unticked are hidden -->
+        <dependents>
+            <Popover id="vcColumnsPopover" title="Frozen columns" placement="Bottom" contentWidth="14rem">
+                <content>
+                    <VBox renderType="Bare" class="sapUiSmallMarginBeginEnd sapUiTinyMarginTopBottom">
+                        <CheckBox text="PR No. / Item" selected="true" enabled="false" tooltip="Always shown"/>
+                        <CheckBox text="Vendor" selected="{vcModel>/cols/vendor}"/>
+                        <CheckBox text="Change" selected="{vcModel>/cols/change}"/>
+                        <CheckBox text="Item Code" selected="{vcModel>/cols/itemCode}"/>
+                        <CheckBox text="PO No." selected="{vcModel>/cols/poNo}"/>
+                    </VBox>
+                </content>
+            </Popover>
+        </dependents>
+        <!-- End: added by SI2 Tech -->
         <content>
             <VBox height="100%" renderType="Bare">
 
@@ -46,6 +61,8 @@
                     <ToolbarSeparator/>
                     <Button icon="sap-icon://expand-group" tooltip="Expand all" press="onVcExpandAll"/>
                     <Button icon="sap-icon://collapse-group" tooltip="Collapse all" press="onVcCollapseAll"/>
+                    <!-- SI2 Tech: show / hide the frozen columns (Vendor, Change, Item Code, PO No.) -->
+                    <Button icon="sap-icon://action-settings" text="Columns" tooltip="Show or hide the frozen columns" press="onVcColumnsPress"/>
                     <Button icon="sap-icon://excel-attachment" tooltip="Export to Excel" press="onVcExport"/>
                 </OverflowToolbar>
 
@@ -71,7 +88,11 @@
                 <!-- End: added by SI2 Tech -->
                     <!-- Start: added by SI2 Tech - each version in its own sap.f.Card (xmlns:f="sap.f" added on the root element) -->
                     <!-- SI2 Tech: card width 16rem -> 20rem for the label / value rows -->
-                    <f:Card width="20rem" class="sapUiSmallMarginEnd sapUiSmallMarginTop">
+                    <!-- SI2 Tech: class vcCard + data-vc-tint added - same background tint as the version's columns in the table -->
+                    <f:Card width="20rem" class="vcCard sapUiSmallMarginEnd sapUiSmallMarginTop">
+                        <f:customData>
+                            <core:CustomData key="vc-tint" value="{vcModel>tint}" writeToDom="true"/>
+                        </f:customData>
                         <!-- Start: added by SI2 Tech - boxes keep their width in the single row (no squeezing) -->
                         <f:layoutData>
                             <FlexItemData shrinkFactor="0"/>
@@ -177,6 +198,8 @@
                 <!-- End: added by SI2 Tech -->
 
                 <!-- PR -> line items, same interaction as the QCS vendor comparison -->
+                <!-- SI2 Tech: fixedColumnCount stays 5 - it counts column positions, so whichever of the first five columns
+                     are visible (Columns button) stay frozen and hidden ones take no space; only the versions scroll -->
                 <table:TreeTable
                     id="vcTable"
                     class="vcTable"
@@ -238,7 +261,7 @@
                             </table:template>
                         </table:Column>
                         <!-- SI2 Tech: width 11rem -> 15rem, text "(Vendor No.) Name" (was VendorName) -->
-                        <table:Column width="15rem">
+                        <table:Column width="15rem" visible="{= ${vcModel>/cols/vendor} !== false }">
                             <table:multiLabels>
                                 <Label text="Vendor" textAlign="Center" width="100%"/>
                             </table:multiLabels>
@@ -246,7 +269,7 @@
                                 <Text text="{vcModel>vendorText}" tooltip="{vcModel>vendorText}" wrapping="false"/>
                             </table:template>
                         </table:Column>
-                        <table:Column width="10rem" hAlign="Center">
+                        <table:Column width="10rem" hAlign="Center" visible="{= ${vcModel>/cols/change} !== false }">
                             <table:multiLabels>
                                 <Label text="Change" textAlign="Center" width="100%"/>
                             </table:multiLabels>
@@ -254,7 +277,7 @@
                                 <ObjectStatus text="{vcModel>statusText}" tooltip="{vcModel>statusText}" state="{vcModel>statusState}" icon="{vcModel>statusIcon}"/>
                             </table:template>
                         </table:Column>
-                        <table:Column width="8rem">
+                        <table:Column width="8rem" visible="{= ${vcModel>/cols/itemCode} !== false }">
                             <table:multiLabels>
                                 <Label text="Item Code" textAlign="Center" width="100%"/>
                             </table:multiLabels>
@@ -263,7 +286,7 @@
                             </table:template>
                         </table:Column>
                         <!-- Start: added by SI2 Tech - PO No. once before the versions (latest PO; highlighted when it changed across versions) -->
-                        <table:Column width="8rem">
+                        <table:Column width="8rem" visible="{= ${vcModel>/cols/poNo} !== false }">
                             <table:multiLabels>
                                 <Label text="PO No." tooltip="Purchase order of the line's vendor (latest version)" textAlign="Center" width="100%"/>
                             </table:multiLabels>
@@ -278,11 +301,13 @@
             </VBox>
         </content>
         <buttons>
+            <!-- SI2 Tech: visible only for users maintained in ZNFA_SEARCHHELP, TYPE FORM_DOWNLOAD -->
             <Button
                 text="Download Form"
                 type="Emphasized"
                 press="onVcDownloadFormPress"
-                enabled="{= ${vcModel>/cards}.length > 1 }"/>
+                enabled="{= ${vcModel>/cards}.length > 1 }"
+                visible="{formAccess>/canDownload}"/>
             <Button text="Close" press="onVcClose"/>
         </buttons>
     </Dialog>

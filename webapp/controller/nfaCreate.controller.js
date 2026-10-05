@@ -94,7 +94,80 @@ sap.ui.define(
         var oSupplierModel = new JSONModel({ items: [] });
         this.getView().setModel(oSupplierModel, "supplierDocs");
 
+        // Start: added by SI2 Tech - Download Form only for users in ZNFA_SEARCHHELP (TYPE FORM_DOWNLOAD)
+        this._si2LoadFormAccess();
+        // End: added by SI2 Tech
       },
+
+      // Start: added by SI2 Tech - Download Form only for users in ZNFA_SEARCHHELP (TYPE FORM_DOWNLOAD)
+      // Component model "formAccess" { canDownload }: loaded once per app session, shared with the QCS page.
+      // The SAP user ID is in DESCRIPTION; any error or missing user keeps the button hidden.
+      _si2LoadFormAccess: function () {
+        var oComponent = this.getOwnerComponent();
+        if (oComponent.getModel("formAccess")) { return; }
+        var oAccessModel = new JSONModel({ canDownload: false });
+        oComponent.setModel(oAccessModel, "formAccess");
+        var oODataModel = oComponent.getModel();
+
+        // SI2 Tech: replaced by the block below - the local sandbox launchpad reports DEFAULT_USER, not the SAP user
+        // var pUserId;
+        // try {
+        //   if (sap.ushell && sap.ushell.Container) {
+        //     pUserId = sap.ushell.Container.getServiceAsync
+        //       ? sap.ushell.Container.getServiceAsync("UserInfo").then(function (oUserInfo) { return oUserInfo.getId(); })
+        //       : Promise.resolve(sap.ushell.Container.getUser().getId());
+        //   } else {
+        //     pUserId = Promise.resolve(""); // no launchpad: button stays hidden
+        //   }
+        // } catch (e) {
+        //   pUserId = Promise.resolve("");
+        // }
+        // Start: added by SI2 Tech - user ID from the SAP system (/sap/bc/ui2/start_up = logged-on user, also via the
+        // local proxy); the launchpad user is only the fallback
+        var fnShellUser = function () {
+          try {
+            if (sap.ushell && sap.ushell.Container) {
+              return sap.ushell.Container.getServiceAsync
+                ? sap.ushell.Container.getServiceAsync("UserInfo").then(function (oUserInfo) { return oUserInfo.getId(); })
+                : Promise.resolve(sap.ushell.Container.getUser().getId());
+            }
+          } catch (e) { /* no launchpad */ }
+          return Promise.resolve(""); // no user: button stays hidden
+        };
+        var pUserId = fetch("/sap/bc/ui2/start_up", { credentials: "same-origin", headers: { Accept: "application/json" } })
+          .then(function (oResp) {
+            if (!oResp.ok) { throw new Error("start_up " + oResp.status); }
+            return oResp.json();
+          })
+          .then(function (oStartUp) {
+            if (!oStartUp || !oStartUp.id) { throw new Error("start_up: no user"); }
+            return oStartUp.id;
+          })
+          .catch(fnShellUser);
+        // End: added by SI2 Tech
+
+        pUserId.then(function (sUserId) {
+          var sUser = String(sUserId || "").trim().toUpperCase();
+          if (!sUser) { return; }
+          oODataModel.read("/et_nfa_search_helpSet", {
+            filters: [new Filter("Type", FilterOperator.EQ, "FORM_DOWNLOAD")],
+            success: function (oData) {
+              var bAllowed = (oData.results || []).some(function (r) {
+                return String(r.Type || "").trim() === "FORM_DOWNLOAD" &&
+                       !String(r.DeletionFlag || "").trim() &&
+                       String(r.Description || "").trim().toUpperCase() === sUser;
+              });
+              oAccessModel.setProperty("/canDownload", bAllowed);
+            },
+            error: function () {
+              oAccessModel.setProperty("/canDownload", false);
+            }
+          });
+        }).catch(function () {
+          oAccessModel.setProperty("/canDownload", false);
+        });
+      },
+      // End: added by SI2 Tech
 
   //      var oModel = this.getOwnerComponent().getModel();
   // oModel.read("/ZNFA_SH_VENDORSet", {
@@ -376,7 +449,8 @@ sap.ui.define(
         if (!this._oVcModel) {
           this._oVcModel = new JSONModel({
             title: "", availableVersions: [], selectedVersions: [],
-            tree: [], allTree: [], cards: [], viewMode: "all"
+            tree: [], allTree: [], cards: [], viewMode: "all",
+            cols: { vendor: true, change: true, itemCode: true, poNo: true } // SI2 Tech: frozen columns shown
           });
         }
         if (!this._oVcDialog) {
@@ -435,7 +509,9 @@ sap.ui.define(
               nfaRefNo: sNfaRefNo,
               availableVersions: aVersions,
               selectedVersions: aDefaultKeys,
-              tree: [], allTree: [], cards: [], viewMode: "all"
+              tree: [], allTree: [], cards: [], viewMode: "all",
+              // SI2 Tech: keep the user's column choice when the dialog is opened again
+              cols: that._oVcModel.getProperty("/cols") || { vendor: true, change: true, itemCode: true, poNo: true }
             });
             that.byId("vcVersionSelect").setSelectedKeys(aDefaultKeys);
             // Start: added by SI2 Tech - PO filter
@@ -1047,6 +1123,7 @@ sap.ui.define(
           // End: added by SI2 Tech
           var oCard = {
             label: that._vcVersionLabel(s.version),
+            tint: String(i % 3), // SI2 Tech: same background tint as this version's columns in the table
             poNos: aPoNos,
             poNosText: aPoNos.length ? "PO " + aPoNos.join(", ") : "PO not created yet",
             poAmtText: that._vcFmt(aPo[i]),
@@ -1123,6 +1200,7 @@ sap.ui.define(
         var iFixed = 5; // SI2 Tech: 4 -> 5, PO No. column added to the fragment
         var that = this;
         var n = aVersionNums.length;
+        var aVerCols = []; // SI2 Tech: column ids per version, for the background shading
         while (oTable.getColumns().length > iFixed) {
           oTable.removeColumn(oTable.getColumns()[iFixed]).destroy();
         }
@@ -1207,9 +1285,79 @@ sap.ui.define(
             if (j === 0) { mSettings.headerSpan = [aCols.length, 1]; }
             oTable.addColumn(new sap.ui.table.Column(mSettings));
           });
+          // Start: added by SI2 Tech - remember this version's columns for the background shading below
+          aVerCols.push(oTable.getColumns().slice(-aCols.length).map(function (oCol) { return oCol.getId(); }));
+          // End: added by SI2 Tech
         });
+        this._vcShadeVersionColumns(aVerCols); // SI2 Tech: very light background per version
         this._vcColumnsForExport = aVersionNums;
       },
+
+      // Start: added by SI2 Tech - Columns button: ticked frozen columns are shown, unticked are hidden
+      onVcColumnsPress: function (oEvent) {
+        this.byId("vcColumnsPopover").openBy(oEvent.getSource());
+      },
+      // End: added by SI2 Tech
+
+      // Start: added by SI2 Tech - very light background per version group (3 tints, repeated), so it is clear
+      // where one version's columns end when scrolling sideways. sap.ui.table.Column takes no style class, so the
+      // cells are matched by their data-sap-ui-colid attribute (set on header and body cells).
+      // SI2 Tech: tints follow the UI5 theme - light themes: very light tints, dark themes: dark tints,
+      // high-contrast themes: no backgrounds, only the edge lines (solid / dashed / dotted per version).
+      _vcShadeVersionColumns: function (aVerCols) {
+        var that = this;
+        this._vcShadeCols = aVerCols; // rebuilt with the new theme's colours on a theme change
+        if (!this._bVcThemeHandler) {
+          this._bVcThemeHandler = true;
+          sap.ui.getCore().attachThemeChanged(function () {
+            if (that._vcShadeCols) { that._vcShadeVersionColumns(that._vcShadeCols); }
+          });
+        }
+        var sTheme = sap.ui.getCore().getConfiguration().getTheme() || "";
+        var bHc = /_hc[bw]$/.test(sTheme);
+        var bDark = /_dark$/.test(sTheme);
+        var aTints = bHc ? [
+          { edge: "currentColor", line: "solid" },
+          { edge: "currentColor", line: "dashed" },
+          { edge: "currentColor", line: "dotted" }
+        ] : bDark ? [
+          { cell: "#1e2a38", head: "#253447", hover: "#2a3a4f", edge: "#4a6a8f", line: "solid" }, // dark blue
+          { cell: "#1e2c25", head: "#25382e", hover: "#2a3f33", edge: "#4d7a5c", line: "solid" }, // dark green
+          { cell: "#2f2920", head: "#3b3326", hover: "#41382a", edge: "#8a744d", line: "solid" }  // dark sand
+        ] : [
+          { cell: "#f4f8fd", head: "#e6effa", hover: "#eaf1fa", edge: "#b8cfe8", line: "solid" }, // light blue
+          { cell: "#f5faf5", head: "#e5f2e7", hover: "#ebf4ec", edge: "#b9d8be", line: "solid" }, // light green
+          { cell: "#fdf9f1", head: "#f8eedb", hover: "#f7f0e2", edge: "#e2cfa6", line: "solid" }  // light sand
+        ];
+        var aRules = [];
+        // Summary card of the same version gets the same tint (card model property "tint" = version index % 3)
+        aTints.forEach(function (t, k) {
+          var sCard = ".vcCard[data-vc-tint=\"" + k + "\"]";
+          aRules.push(sCard + "{" + (t.cell ? "background-color:" + t.cell + ";" : "") +
+                      "border:1px " + t.line + " " + t.edge + ";border-top:4px " + t.line + " " + t.edge + ";}");
+          if (t.cell) { aRules.push(sCard + " .sapFCardContent{background-color:transparent;}"); }
+        });
+        aVerCols.forEach(function (aIds, i) {
+          var t = aTints[i % aTints.length];
+          aIds.forEach(function (sId, j) {
+            var sCell = ".vcTable td[data-sap-ui-colid=\"" + sId + "\"]";
+            if (t.cell) {
+              aRules.push(sCell + "{background-color:" + t.cell + ";}");
+              aRules.push(".vcTable .sapUiTableColHdrTr " + sCell.replace(".vcTable ", "") + "{background-color:" + t.head + ";}");
+              aRules.push(".vcTable .sapUiTableRowHvr " + sCell.replace(".vcTable ", "") + "{background-color:" + t.hover + ";}");
+            }
+            if (j === 0) { aRules.push(sCell + "{border-left:2px " + t.line + " " + t.edge + ";}"); }
+          });
+        });
+        var oStyle = document.getElementById("vcVersionColStyles");
+        if (!oStyle) {
+          oStyle = document.createElement("style");
+          oStyle.id = "vcVersionColStyles";
+          document.head.appendChild(oStyle);
+        }
+        oStyle.textContent = aRules.join("\n");
+      },
+      // End: added by SI2 Tech
 
       onVcExport: function () {
         var aTree = this._oVcModel.getProperty("/tree") || [];
@@ -1283,6 +1431,10 @@ sap.ui.define(
       // ---------- Download Form (print / Save as PDF, same format as Version History) ----------
 
       onVcDownloadFormPress: function () {
+        // Start: added by SI2 Tech - Download Form only for users in ZNFA_SEARCHHELP (TYPE FORM_DOWNLOAD)
+        var oAccess = this.getOwnerComponent().getModel("formAccess");
+        if (!oAccess || !oAccess.getProperty("/canDownload")) { return; }
+        // End: added by SI2 Tech
         var that = this;
         var aSnaps = this._vcSnapshots || [];
         var aTree = this._oVcModel.getProperty("/allTree") || [];
@@ -1892,6 +2044,10 @@ sap.ui.define(
       },
 
       onVersionDownloadFormPress: function () {
+        // Start: added by SI2 Tech - Download Form only for users in ZNFA_SEARCHHELP (TYPE FORM_DOWNLOAD)
+        var oAccess = this.getOwnerComponent().getModel("formAccess");
+        if (!oAccess || !oAccess.getProperty("/canDownload")) { return; }
+        // End: added by SI2 Tech
         var oViewModel = this.getView().getModel("viewModel");
         var oVersionView = oViewModel.getProperty("/versionView") || {};
         var sNfaRefNo = oVersionView.NfaRefNo || "";

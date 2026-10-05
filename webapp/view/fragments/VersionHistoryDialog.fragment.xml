@@ -274,11 +274,13 @@
                 type="Emphasized"
                 press="onVersionSummaryPress"
                 enabled="{= !!${viewModel>/versionView/NfaRefNo} }"/>
+            <!-- SI2 Tech: visible only for users maintained in ZNFA_SEARCHHELP, TYPE FORM_DOWNLOAD -->
             <Button
                 text="Download Form"
                 type="Default"
                 press="onVersionDownloadFormPress"
-                enabled="{= !!${viewModel>/versionView/NfaRefNo} }"/>
+                enabled="{= !!${viewModel>/versionView/NfaRefNo} }"
+                visible="{formAccess>/canDownload}"/>
             <Button text="Close" press="onCloseVersionHistoryDialog"/>
         </buttons>
     </Dialog>

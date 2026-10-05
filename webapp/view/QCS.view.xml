@@ -345,12 +345,14 @@
       <Button text="Submit for approval" type="Success" press="onPostVendorPRDetails" enabled="{view>/submitEnabled}" visible="{= !${view>/isApprovedMode} &amp;&amp; !${view>/isApprovalPending} }"/>
       <Button text="Summary" type="Default" icon="sap-icon://detail-view" press="onOpenSummary" visible="{= ${view>/isApprovedMode} || ${view>/isApprovalPending} }"/>
       <!-- <Link text="QCS Form" press="onOpenQCSForm"  class="sapUiSmallMarginBegin"/> -->
+      <!-- SI2 Tech: visible only for users maintained in ZNFA_SEARCHHELP, TYPE FORM_DOWNLOAD -->
       <Button
       text="Download Form"
       type="Default"
       icon="sap-icon://download"
       press="onDownloadQCSForm"
-      enabled="{= ${view>/submitEnabled} || ${view>/isApprovedMode} || ${view>/isApprovalPending} || ${view>/isDocEditMode} || ${view>/hasTableData} }"/>
+      enabled="{= ${view>/submitEnabled} || ${view>/isApprovedMode} || ${view>/isApprovalPending} || ${view>/isDocEditMode} || ${view>/hasTableData} }"
+      visible="{formAccess>/canDownload}"/>
     </OverflowToolbar>
   </footer>
 </Page>
