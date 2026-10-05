@@ -839,6 +839,16 @@ sap.ui.define(
         return v > 0.005 ? "+" + s : (v < -0.005 ? "−" + s : "0.00");
       },
 
+      // Start: added by SI2 Tech - % change vs a base amount, in brackets: "(+5.25%)" / "(−3.10%)" / "(0.00%)".
+      // Blank when there is no base to compare with (base 0 / not a number).
+      _vcFmtPct: function (fCur, fBase) {
+        if (typeof fCur !== "number" || typeof fBase !== "number" || Math.abs(fBase) < 0.005) { return ""; }
+        var p = Math.round((fCur - fBase) / Math.abs(fBase) * 10000) / 100;
+        var s = Math.abs(p).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return "(" + (p > 0 ? "+" + s : (p < 0 ? "−" + s : "0.00")) + "%)";
+      },
+      // End: added by SI2 Tech
+
       // Builds: PR nodes (subtotals) -> ITEM children, a Grand Total node, and the summary cards.
       // Line values: q = SplitPoQty, r = NegotiatedPrice, t = q × r. Only ordered, non-ICE lines (same filter NFA_PO uses).
       _vcBuildTree: function (aSnapshots) {
@@ -1081,9 +1091,16 @@ sap.ui.define(
           if (g > 0) {
             oGrand["d" + g] = fnRound(aGrand[g] - aGrand[g - 1]);
             oGrand["ds" + g] = fnDeltaState(oGrand["d" + g]);
+            // SI2 Tech: % change of the grand total vs the previous version, shown next to the Total Amount
+            oGrand["tpct" + g] = that._vcFmtPct(aGrand[g], aGrand[g - 1]);
+            oGrand["tpcts" + g] = oGrand["ds" + g];
+            // SI2 Tech: same % next to the Total Amount change vs the previous version
+            oGrand["dpct" + g] = oGrand["tpct" + g];
           }
         }
         if (n > 2) { oGrand.dO = fnRound(aGrand[iLast] - aGrand[0]); oGrand.dOs = fnDeltaState(oGrand.dO); }
+        // SI2 Tech: % change of the grand total vs the original scope, next to the Total Amount change vs the first version
+        if (n > 2) { oGrand.dOpct = that._vcFmtPct(aGrand[iLast], aGrand[0]); }
         oGrand.statusText = ""; oGrand.statusState = "None"; oGrand.statusIcon = "";
         aTree.push(oGrand);
 
@@ -1157,6 +1174,26 @@ sap.ui.define(
           oCard.chargesAmt = bNotSaved ? null : fnRound(aPo[i] - aBasic[i]);
           oCard.basicValText = that._vcFmt(aBasic[i]);
           oCard.chargesValText = bNotSaved ? "Not saved yet" : that._vcFmt(oCard.chargesAmt);
+          // Start: added by SI2 Tech - % change vs the previous version, in brackets next to the amounts
+          // (blank on the first version, and where this or the previous amount is not saved yet)
+          oCard.poAmtPct = ""; oCard.poAmtPctState = "None";
+          oCard.basicPct = ""; oCard.basicPctState = "None";
+          oCard.chargesPct = ""; oCard.chargesPctState = "None";
+          if (i > 0) {
+            var bPrevNotSaved = aPo[i - 1] === 0 && aBasic[i - 1] !== 0;
+            var fPrevCharges = bPrevNotSaved ? null : fnRound(aPo[i - 1] - aBasic[i - 1]);
+            if (aPo[i] !== 0) {
+              oCard.poAmtPct = that._vcFmtPct(aPo[i], aPo[i - 1]);
+              oCard.poAmtPctState = fnDeltaState(aPo[i] - aPo[i - 1]);
+            }
+            oCard.basicPct = that._vcFmtPct(aBasic[i], aBasic[i - 1]);
+            oCard.basicPctState = fnDeltaState(aBasic[i] - aBasic[i - 1]);
+            if (oCard.chargesAmt !== null && fPrevCharges !== null) {
+              oCard.chargesPct = that._vcFmtPct(oCard.chargesAmt, fPrevCharges);
+              oCard.chargesPctState = fnDeltaState(oCard.chargesAmt - fPrevCharges);
+            }
+          }
+          // End: added by SI2 Tech
           oCard.poAmtTip = bPoFiltered ? "Net landed cost of the selected PO(s) in this version"
                                        : "PO amount on the approval form of this version";
           if (bPoFiltered && !Object.keys(aVendorsIn[i]).length) { oCard.poNosText = "No lines on the selected PO(s)"; }
@@ -1179,13 +1216,17 @@ sap.ui.define(
             var dB = fnRound(aBasic[i] - aBasic[i - 1]);
             oCard.netImpact = dB;
             oCard.netImpactFirst = fnRound(aBasic[i] - aBasic[0]);
-            oCard.deltaText = that._vcFmtDelta(dB) + " vs V" + aVer[i - 1];
+            // SI2 Tech: % change of the basic amount added in brackets next to the amount
+            oCard.deltaText = [that._vcFmtDelta(dB), that._vcFmtPct(aBasic[i], aBasic[i - 1]), "vs V" + aVer[i - 1]]
+              .filter(Boolean).join(" ");
             oCard.deltaState = fnDeltaState(dB);
             oCard.deltaIcon = dB > EPS ? "sap-icon://trend-up" : (dB < -EPS ? "sap-icon://trend-down" : "");
           }
           if (i === iLast && n > 2) {
             var dBO = fnRound(aBasic[i] - aBasic[0]);
-            oCard.deltaOrigText = that._vcFmtDelta(dBO) + " vs V" + aVer[0] + " (original scope)";
+            // SI2 Tech: % change of the basic amount vs the original scope added in brackets next to the amount
+            oCard.deltaOrigText = [that._vcFmtDelta(dBO), that._vcFmtPct(aBasic[i], aBasic[0]), "vs V" + aVer[0] + " (original scope)"]
+              .filter(Boolean).join(" ");
             oCard.deltaOrigState = fnDeltaState(dBO);
           }
           // End: added by SI2 Tech
@@ -1217,6 +1258,8 @@ sap.ui.define(
             { label: "Unit Rate", tip: "Negotiated price per unit", val: "r" + i, state: "rs" + i, prev: "rp" + i, fmt: fnFmt },
             { label: "Total Amount", tip: "PO Qty × Unit Rate", val: "t" + i, state: "ts" + i, prev: "tp" + i, fmt: fnFmt }
           ];
+          // SI2 Tech: Grand Total row shows the % change vs the previous version next to the Total Amount
+          if (i > 0) { aCols[2].pct = "tpct" + i; aCols[2].pctState = "tpcts" + i; }
           // Start: added by SI2 Tech - qty / rate change columns
           // Change columns in words (no symbols): PO Qty change / Unit Rate change / Total Amount change vs the compared version
           if (i > 0) {
@@ -1226,7 +1269,8 @@ sap.ui.define(
             aCols.push({ label: "Unit Rate change vs " + sPrevV, tip: "Unit rate in V" + iVer + " minus unit rate in " + sPrevV,
                          val: "dr" + i, state: "drs" + i, fmt: fnFmtDelta, delta: true });
             aCols.push({ label: "Total Amount change vs " + sPrevV, tip: "Total Amount (PO Qty × Unit Rate) in V" + iVer + " minus total in " + sPrevV,
-                         val: "d" + i, state: "ds" + i, fmt: fnFmtDelta, delta: true });
+                         val: "d" + i, state: "ds" + i, fmt: fnFmtDelta, delta: true,
+                         pct: "dpct" + i, pctState: "ds" + i, pctTip: "Change vs " + sPrevV }); // SI2 Tech: % on the Grand Total row
           }
           if (i === n - 1 && n > 2) {
             var sOrigV = "V" + aVersionNums[0];
@@ -1235,7 +1279,8 @@ sap.ui.define(
             aCols.push({ label: "Unit Rate change vs " + sOrigV, tip: "Unit rate in V" + iVer + " minus unit rate in " + sOrigV + " (original scope)",
                          val: "drO", state: "drOs", fmt: fnFmtDelta, delta: true });
             aCols.push({ label: "Total Amount change vs " + sOrigV, tip: "Total in V" + iVer + " minus total in " + sOrigV + " (original scope)",
-                         val: "dO", state: "dOs", fmt: fnFmtDelta, delta: true });
+                         val: "dO", state: "dOs", fmt: fnFmtDelta, delta: true,
+                         pct: "dOpct", pctState: "dOs", pctTip: "Change vs " + sOrigV + " (original scope)" }); // SI2 Tech: % on the Grand Total row
           }
           // End: added by SI2 Tech
 
@@ -1282,6 +1327,26 @@ sap.ui.define(
               ],
               template: new sap.m.ObjectNumber(mNumber)
             };
+            // Start: added by SI2 Tech - % in brackets right next to the amount (only filled on the Grand Total row)
+            if (c.pct) {
+              // SI2 Tech: at least 13rem for the amount + %; the wider change headers keep their own width
+              mSettings.width = Math.max(13, parseFloat(mSettings.width)) + "rem";
+              mSettings.template = new sap.m.HBox({
+                justifyContent: "End",
+                alignItems: "Center",
+                width: "100%",
+                items: [
+                  mSettings.template,
+                  new sap.m.ObjectStatus({
+                    text: "{vcModel>" + c.pct + "}",
+                    state: "{vcModel>" + c.pctState + "}",
+                    visible: { path: "vcModel>" + c.pct, formatter: function (v) { return !!v; } },
+                    tooltip: c.pctTip || "Change vs the previous version"
+                  }).addStyleClass("sapUiTinyMarginBegin")
+                ]
+              });
+            }
+            // End: added by SI2 Tech
             if (j === 0) { mSettings.headerSpan = [aCols.length, 1]; }
             oTable.addColumn(new sap.ui.table.Column(mSettings));
           });

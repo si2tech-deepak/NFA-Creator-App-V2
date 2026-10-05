@@ -89,7 +89,8 @@
                     <!-- Start: added by SI2 Tech - each version in its own sap.f.Card (xmlns:f="sap.f" added on the root element) -->
                     <!-- SI2 Tech: card width 16rem -> 20rem for the label / value rows -->
                     <!-- SI2 Tech: class vcCard + data-vc-tint added - same background tint as the version's columns in the table -->
-                    <f:Card width="20rem" class="vcCard sapUiSmallMarginEnd sapUiSmallMarginTop">
+                    <!-- SI2 Tech: card width 20rem -> 23rem, room for the % change next to the amounts -->
+                    <f:Card width="23rem" class="vcCard sapUiSmallMarginEnd sapUiSmallMarginTop">
                         <f:customData>
                             <core:CustomData key="vc-tint" value="{vcModel>tint}" writeToDom="true"/>
                         </f:customData>
@@ -100,7 +101,8 @@
                         <!-- End: added by SI2 Tech -->
                         <f:content>
                             <!-- SI2 Tech: fixed width (card 20rem minus 2 x 1rem margin) so the values align on the right edge -->
-                            <VBox renderType="Bare" class="sapUiSmallMargin" width="18rem">
+                            <!-- SI2 Tech: 18rem -> 21rem with the card width -->
+                            <VBox renderType="Bare" class="sapUiSmallMargin" width="21rem">
                     <!-- End: added by SI2 Tech -->
                                 <Label text="{vcModel>label}" design="Bold"/>
                                 <!-- Start: added by SI2 Tech - PO number(s) as the second line, right below the version title -->
@@ -119,6 +121,7 @@
                                 <!-- Start: added by SI2 Tech - PO amount row (tooltip from the model: approval form or selected POs) -->
                                 <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%">
                                     <Text text="PO Amount (Net Landed Cost)" class="sapUiTinyMarginEnd"/>
+                                    <!-- SI2 Tech: replaced by the HBox below - % change vs the previous version in brackets next to the amount
                                     <ObjectNumber
                                         number="{vcModel>poAmtText}"
                                         unit="INR"
@@ -127,6 +130,24 @@
                                         tooltip="{vcModel>poAmtTip}">
                                         <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
                                     </ObjectNumber>
+                                    -->
+                                    <!-- Start: added by SI2 Tech -->
+                                    <HBox alignItems="Center" renderType="Bare">
+                                        <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+                                        <ObjectNumber
+                                            number="{vcModel>poAmtText}"
+                                            unit="INR"
+                                            emphasized="true"
+                                            textAlign="End"
+                                            tooltip="{vcModel>poAmtTip}"/>
+                                        <ObjectStatus
+                                            text="{vcModel>poAmtPct}"
+                                            state="{vcModel>poAmtPctState}"
+                                            visible="{= !!${vcModel>poAmtPct} }"
+                                            tooltip="Change in the PO amount vs the previous version"
+                                            class="sapUiTinyMarginBegin"/>
+                                    </HBox>
+                                    <!-- End: added by SI2 Tech -->
                                 </HBox>
                                 <!-- End: added by SI2 Tech -->
                                 <!-- SI2 Tech: replaced by the Basic / Charges &amp; GST rows below
@@ -138,15 +159,43 @@
                                 <!-- Start: added by SI2 Tech - Basic, Charges &amp; GST, changes vs the previous version (basic amount), net impact -->
                                 <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%" class="sapUiTinyMarginTop">
                                     <Text text="Basic amount" tooltip="Σ Qty × Negotiated Price (same as Grand Total in the table)" class="sapUiTinyMarginEnd"/>
+                                    <!-- SI2 Tech: replaced by the HBox below - % change vs the previous version in brackets next to the amount
                                     <Text text="{vcModel>basicValText}" wrapping="false" textAlign="End">
                                         <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
                                     </Text>
+                                    -->
+                                    <!-- Start: added by SI2 Tech -->
+                                    <HBox alignItems="Center" renderType="Bare">
+                                        <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+                                        <Text text="{vcModel>basicValText}" wrapping="false" textAlign="End"/>
+                                        <ObjectStatus
+                                            text="{vcModel>basicPct}"
+                                            state="{vcModel>basicPctState}"
+                                            visible="{= !!${vcModel>basicPct} }"
+                                            tooltip="Change in the basic amount vs the previous version"
+                                            class="sapUiTinyMarginBegin"/>
+                                    </HBox>
+                                    <!-- End: added by SI2 Tech -->
                                 </HBox>
                                 <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%">
                                     <Text text="Charges &amp; GST" tooltip="PO amount minus basic amount (P&amp;F + Freight + Insurance + GST from the QCS summary)" class="sapUiTinyMarginEnd"/>
+                                    <!-- SI2 Tech: replaced by the HBox below - % change vs the previous version in brackets next to the amount
                                     <Text text="{vcModel>chargesValText}" wrapping="false" textAlign="End">
                                         <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
                                     </Text>
+                                    -->
+                                    <!-- Start: added by SI2 Tech -->
+                                    <HBox alignItems="Center" renderType="Bare">
+                                        <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+                                        <Text text="{vcModel>chargesValText}" wrapping="false" textAlign="End"/>
+                                        <ObjectStatus
+                                            text="{vcModel>chargesPct}"
+                                            state="{vcModel>chargesPctState}"
+                                            visible="{= !!${vcModel>chargesPct} }"
+                                            tooltip="Change in charges &amp; GST vs the previous version"
+                                            class="sapUiTinyMarginBegin"/>
+                                    </HBox>
+                                    <!-- End: added by SI2 Tech -->
                                 </HBox>
                                 <Label text="{vcModel>moveHdrText}" design="Bold" wrapping="true" class="sapUiTinyMarginTop"/>
                                 <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%" class="vcMoveRowSep">
