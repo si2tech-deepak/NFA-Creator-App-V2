@@ -9,8 +9,9 @@ sap.ui.define(
     // Start: added by SI2 Tech - PO info popover (Unit LPP ⓘ) shared with the QCS page
     "com/df/nfa/creator_v2/controller/mixin/PoHistory",
     // End: added by SI2 Tech
+    "sap/ui/core/theming/Parameters", // SI2 Tech: theme colours for the version comparison tints
   ],
-  function (Controller, JSONModel, MessageToast, MessageBox, Filter, FilterOperator, PoHistory) { // PoHistory: added by SI2 Tech
+  function (Controller, JSONModel, MessageToast, MessageBox, Filter, FilterOperator, PoHistory, Parameters) { // PoHistory, Parameters: added by SI2 Tech
     "use strict";
 
     // Start: added by SI2 Tech - PoHistory mixed in via Object.assign (closed at the end of the file)
@@ -1140,7 +1141,7 @@ sap.ui.define(
           // End: added by SI2 Tech
           var oCard = {
             label: that._vcVersionLabel(s.version),
-            tint: String(i % 3), // SI2 Tech: same background tint as this version's columns in the table
+            tint: String(i % 2), // SI2 Tech: same background tint as this version's columns in the table (2 tints, was 3)
             poNos: aPoNos,
             poNosText: aPoNos.length ? "PO " + aPoNos.join(", ") : "PO not created yet",
             poAmtText: that._vcFmt(aPo[i]),
@@ -1354,7 +1355,7 @@ sap.ui.define(
           aVerCols.push(oTable.getColumns().slice(-aCols.length).map(function (oCol) { return oCol.getId(); }));
           // End: added by SI2 Tech
         });
-        this._vcShadeVersionColumns(aVerCols); // SI2 Tech: very light background per version
+        this._vcShadeVersionColumns(aVerCols); // SI2 Tech: light background per version (blue / orange alternating)
         this._vcColumnsForExport = aVersionNums;
       },
 
@@ -1364,11 +1365,12 @@ sap.ui.define(
       },
       // End: added by SI2 Tech
 
-      // Start: added by SI2 Tech - very light background per version group (3 tints, repeated), so it is clear
-      // where one version's columns end when scrolling sideways. sap.ui.table.Column takes no style class, so the
-      // cells are matched by their data-sap-ui-colid attribute (set on header and body cells).
-      // SI2 Tech: tints follow the UI5 theme - light themes: very light tints, dark themes: dark tints,
-      // high-contrast themes: no backgrounds, only the edge lines (solid / dashed / dotted per version).
+      // Start: added by SI2 Tech - light background per version group, so it is clear where one version's columns
+      // end when scrolling sideways. sap.ui.table.Column takes no style class, so the cells are matched by their
+      // data-sap-ui-colid attribute (set on header and body cells).
+      // SI2 Tech: 3 tints (blue / green / sand) -> 2 tints alternating (blue / mild orange), users found 3 colours too busy.
+      // The tints are mixed into the current theme's own list background (theming parameters), so they fit any light or
+      // dark theme (also custom themes); high-contrast themes: no backgrounds, only the edge lines (solid / dashed).
       _vcShadeVersionColumns: function (aVerCols) {
         var that = this;
         this._vcShadeCols = aVerCols; // rebuilt with the new theme's colours on a theme change
@@ -1378,24 +1380,53 @@ sap.ui.define(
             if (that._vcShadeCols) { that._vcShadeVersionColumns(that._vcShadeCols); }
           });
         }
+        // Parameters.get returns the values at once when the theme is loaded, otherwise later through the callback
+        var mParams = Parameters.get({
+          name: ["sapList_Background", "sapList_HeaderBackground"],
+          callback: function (m) {
+            if (that._vcShadeCols === aVerCols) { that._vcWriteShadeStyles(aVerCols, m); }
+          }
+        });
+        if (mParams) { this._vcWriteShadeStyles(aVerCols, mParams); }
+      },
+
+      _vcWriteShadeStyles: function (aVerCols, mParams) {
         var sTheme = sap.ui.getCore().getConfiguration().getTheme() || "";
         var bHc = /_hc[bw]$/.test(sTheme);
-        var bDark = /_dark$/.test(sTheme);
+        // "#rgb", "#rrggbb" or "rgb(a)(...)" -> [r, g, b]; anything else -> null
+        var fnRgb = function (s) {
+          s = String(s || "").trim();
+          var m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(s);
+          if (m) {
+            var h = m[1].length === 3 ? m[1].replace(/./g, "$&$&") : m[1];
+            return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
+          }
+          m = /^rgba?\(\s*(\d+)\D+(\d+)\D+(\d+)/i.exec(s);
+          return m ? [+m[1], +m[2], +m[3]] : null;
+        };
+        var aBg = fnRgb(mParams && mParams.sapList_Background);
+        // dark theme = dark list background (falls back to the theme name if the parameter cannot be read)
+        var bDark = aBg ? (0.2126 * aBg[0] + 0.7152 * aBg[1] + 0.0722 * aBg[2]) < 128 : /_dark$/.test(sTheme);
+        if (!aBg) { aBg = bDark ? [29, 35, 40] : [255, 255, 255]; }
+        var aHead = fnRgb(mParams && mParams.sapList_HeaderBackground) || aBg;
+        var fnMix = function (aAccent, aBase, f) {
+          return "rgb(" + aAccent.map(function (c, k) { return Math.round(aBase[k] + (c - aBase[k]) * f); }).join(",") + ")";
+        };
+        // Accent colours: blue and mild orange. Dark themes use brighter accents mixed in a little stronger,
+        // so the two versions stay clearly different on a dark background too.
+        var aAccents = bDark ? [[77, 160, 245], [240, 150, 75]] : [[27, 115, 214], [240, 138, 44]];
+        var oMix = bDark ? { cell: 0.2, head: 0.3, hover: 0.3, edge: 0.65 } : { cell: 0.12, head: 0.2, hover: 0.19, edge: 0.55 };
         var aTints = bHc ? [
           { edge: "currentColor", line: "solid" },
-          { edge: "currentColor", line: "dashed" },
-          { edge: "currentColor", line: "dotted" }
-        ] : bDark ? [
-          { cell: "#1e2a38", head: "#253447", hover: "#2a3a4f", edge: "#4a6a8f", line: "solid" }, // dark blue
-          { cell: "#1e2c25", head: "#25382e", hover: "#2a3f33", edge: "#4d7a5c", line: "solid" }, // dark green
-          { cell: "#2f2920", head: "#3b3326", hover: "#41382a", edge: "#8a744d", line: "solid" }  // dark sand
-        ] : [
-          { cell: "#f4f8fd", head: "#e6effa", hover: "#eaf1fa", edge: "#b8cfe8", line: "solid" }, // light blue
-          { cell: "#f5faf5", head: "#e5f2e7", hover: "#ebf4ec", edge: "#b9d8be", line: "solid" }, // light green
-          { cell: "#fdf9f1", head: "#f8eedb", hover: "#f7f0e2", edge: "#e2cfa6", line: "solid" }  // light sand
-        ];
+          { edge: "currentColor", line: "dashed" }
+        ] : aAccents.map(function (a) {
+          return {
+            cell: fnMix(a, aBg, oMix.cell), head: fnMix(a, aHead, oMix.head),
+            hover: fnMix(a, aBg, oMix.hover), edge: fnMix(a, aBg, oMix.edge), line: "solid"
+          };
+        });
         var aRules = [];
-        // Summary card of the same version gets the same tint (card model property "tint" = version index % 3)
+        // Summary card of the same version gets the same tint (card model property "tint" = version index % 2)
         aTints.forEach(function (t, k) {
           var sCard = ".vcCard[data-vc-tint=\"" + k + "\"]";
           aRules.push(sCard + "{" + (t.cell ? "background-color:" + t.cell + ";" : "") +

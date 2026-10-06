@@ -20,9 +20,10 @@ server:
             - /resources
             - /test-resources
           url: https://ui5.sap.com
-          # version not set -> uses manifest minUI5Version (1.143.2).
-          # To match the server exactly, set it to the value of sap.ui.version
-          # from the live app's browser console, e.g.  version: "1.143.2"
+          # Pinned: without a version the resource URLs are unversioned and the browser cache can mix
+          # UI5 releases (seen: "M.getStableIntent is not a function" in the FLP sandbox).
+          # To match the server exactly, set it to the value of sap.ui.version from the live app's browser console.
+          version: "1.143.2"
         backend:
           - path: /sap
             url: https://vhdnlds4ci.sap.godeepak.com:44300
