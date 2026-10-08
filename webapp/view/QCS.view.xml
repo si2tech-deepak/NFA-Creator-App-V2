@@ -276,7 +276,7 @@
         </table:template>
       </table:Column>
 
-      <!-- Unit LPP -->
+      <!-- Unit LPP 
       <table:Column width="80px" hAlign="End">
         <Label text="Unit LPP" textAlign="Center" width="100%"/>
         <table:template>
@@ -285,6 +285,43 @@
               visible="{= !${view>IsManual} || parseFloat(${view>UnitLpp}) > 0 }"
               text="{view>UnitLpp}"
               textAlign="End"/>
+            <Input
+              visible="{= ${view>IsManual} &amp;&amp; !(parseFloat(${view>UnitLpp}) > 0) }"
+              value="{view>UnitLpp}"
+              type="Number"
+              textAlign="End"
+              width="100%"
+              change="onManualLppChange"/>
+          </HBox>
+        </table:template>
+      </table:Column> -->
+
+      <!-- Unit LPP (+ source PO info) -->
+      <!-- SI2 Tech: 110px -> 140px; the value may shrink (ellipsis + tooltip), the info button never does -->
+      <table:Column width="140px" hAlign="End">
+        <Label text="Unit LPP" textAlign="Center" width="100%"/>
+        <table:template>
+          <HBox visible="{= ${view>NodeType} === 'ITEM' }" justifyContent="End" alignItems="Center" width="100%">
+            <Text
+              visible="{= !${view>IsManual} || parseFloat(${view>UnitLpp}) > 0 }"
+              text="{view>UnitLpp}"
+              tooltip="{view>UnitLpp}"
+              wrapping="false"
+              textAlign="End">
+              <layoutData><FlexItemData shrinkFactor="1" minWidth="0"/></layoutData>
+            </Text>
+            <!-- Start: added by SI2 Tech - info button (sap.m.Button, same control as the row delete button) -->
+            <!-- SI2 Tech: Ariba check removed - the button is shown for Ariba NFAs as well -->
+            <!-- SI2 Tech: Unit LPP > 0 check removed - with no PO in this plant the popup lists the other plants -->
+            <Button
+              icon="sap-icon://hint"
+              type="Transparent"
+              visible="{= !!${view>Material} }"
+              press="onLppInfoPress"
+              tooltip="Show the PO this Unit LPP comes from and the last PO in the other plants">
+              <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+            </Button>
+            <!-- End: added by SI2 Tech -->
             <Input
               visible="{= ${view>IsManual} &amp;&amp; !(parseFloat(${view>UnitLpp}) > 0) }"
               value="{view>UnitLpp}"
@@ -308,14 +345,15 @@
       <Button text="Submit for approval" type="Success" press="onPostVendorPRDetails" enabled="{view>/submitEnabled}" visible="{= !${view>/isApprovedMode} &amp;&amp; !${view>/isApprovalPending} }"/>
       <Button text="Summary" type="Default" icon="sap-icon://detail-view" press="onOpenSummary" visible="{= ${view>/isApprovedMode} || ${view>/isApprovalPending} }"/>
       <!-- <Link text="QCS Form" press="onOpenQCSForm"  class="sapUiSmallMarginBegin"/> -->
+      <!-- SI2 Tech: visible only for users maintained in ZNFA_SEARCHHELP, TYPE FORM_DOWNLOAD -->
       <Button
       text="Download Form"
       type="Default"
       icon="sap-icon://download"
       press="onDownloadQCSForm"
-      enabled="{= ${view>/submitEnabled} || ${view>/isApprovedMode} || ${view>/isApprovalPending} || ${view>/isDocEditMode} || ${view>/hasTableData} }"/>
+      enabled="{= ${view>/submitEnabled} || ${view>/isApprovedMode} || ${view>/isApprovalPending} || ${view>/isDocEditMode} || ${view>/hasTableData} }"
+      visible="{formAccess>/canDownload}"/>
     </OverflowToolbar>
   </footer>
 </Page>
 </mvc:View>
- 

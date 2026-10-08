@@ -21,11 +21,11 @@ builder:
         ignoreCertErrors: true
         target:
           url: https://vhdnlds4ci.sap.godeepak.com:44300
-          client: "120"
+          client: "110"
         app:
-          name: <BSP_APP_NAME>          # SE80 -> BSP Application of the running app
+          name: Z_NFA_CREATE_V2
           description: NFA Creator V2
-          package: <PACKAGE>            # package of that BSP application
-          transport: <TRANSPORT>        # your workbench request
+          package: Z_NFA_UPDATED
+          transport: DS4K924331
         exclude:
           - /test/

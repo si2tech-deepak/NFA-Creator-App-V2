@@ -15,11 +15,16 @@ sap.ui.define([
   "sap/ui/model/FilterOperator",
   "sap/m/DatePicker",
   "sap/ui/comp/filterbar/FilterBar",
-  "sap/ui/comp/filterbar/FilterGroupItem"
-], function (Controller, JSONModel, Fragment, Column, Label, Input, MessageBox, ValueHelpDialog, UITableColumn, MColumn, ColumnListItem, Text, Filter, FilterOperator, DatePicker, FilterBar, FilterGroupItem) {
+  "sap/ui/comp/filterbar/FilterGroupItem",
+  // Start: added by SI2 Tech - PO info popover (Unit LPP ⓘ)
+  "com/df/nfa/creator_v2/controller/mixin/PoHistory"
+  // End: added by SI2 Tech
+], function (Controller, JSONModel, Fragment, Column, Label, Input, MessageBox, ValueHelpDialog, UITableColumn, MColumn, ColumnListItem, Text, Filter, FilterOperator, DatePicker, FilterBar, FilterGroupItem, PoHistory) { // PoHistory: added by SI2 Tech
   "use strict";
 
-  return Controller.extend("com.df.nfa.creator_v2.controller.QCS", {
+  // Start: added by SI2 Tech - PoHistory mixed in via Object.assign (closed at the end of the file)
+  return Controller.extend("com.df.nfa.creator_v2.controller.QCS", Object.assign({}, PoHistory, {
+  // End: added by SI2 Tech
 
     // onInit: function () {
 
@@ -130,7 +135,81 @@ sap.ui.define([
     .getRouter()
     .getRoute("RouteQCS")
     .attachPatternMatched(this._onRouteMatched, this);
+
+  // Start: added by SI2 Tech - Download Form only for users in ZNFA_SEARCHHELP (TYPE FORM_DOWNLOAD)
+  this._si2LoadFormAccess();
+  // End: added by SI2 Tech
 },
+
+// Start: added by SI2 Tech - Download Form only for users in ZNFA_SEARCHHELP (TYPE FORM_DOWNLOAD)
+// Component model "formAccess" { canDownload }: loaded once per app session, shared with the NFA page.
+// The SAP user ID is in DESCRIPTION; any error or missing user keeps the button hidden.
+_si2LoadFormAccess: function () {
+  var oComponent = this.getOwnerComponent();
+  if (oComponent.getModel("formAccess")) { return; }
+  var oAccessModel = new JSONModel({ canDownload: false });
+  oComponent.setModel(oAccessModel, "formAccess");
+  var oODataModel = oComponent.getModel();
+
+  // SI2 Tech: replaced by the block below - the local sandbox launchpad reports DEFAULT_USER, not the SAP user
+  // var pUserId;
+  // try {
+  //   if (sap.ushell && sap.ushell.Container) {
+  //     pUserId = sap.ushell.Container.getServiceAsync
+  //       ? sap.ushell.Container.getServiceAsync("UserInfo").then(function (oUserInfo) { return oUserInfo.getId(); })
+  //       : Promise.resolve(sap.ushell.Container.getUser().getId());
+  //   } else {
+  //     pUserId = Promise.resolve(""); // no launchpad: button stays hidden
+  //   }
+  // } catch (e) {
+  //   pUserId = Promise.resolve("");
+  // }
+  // Start: added by SI2 Tech - user ID from the SAP system (/sap/bc/ui2/start_up = logged-on user, also via the
+  // local proxy); the launchpad user is only the fallback
+  var fnShellUser = function () {
+    try {
+      if (sap.ushell && sap.ushell.Container) {
+        return sap.ushell.Container.getServiceAsync
+          ? sap.ushell.Container.getServiceAsync("UserInfo").then(function (oUserInfo) { return oUserInfo.getId(); })
+          : Promise.resolve(sap.ushell.Container.getUser().getId());
+      }
+    } catch (e) { /* no launchpad */ }
+    return Promise.resolve(""); // no user: button stays hidden
+  };
+  var pUserId = fetch("/sap/bc/ui2/start_up", { credentials: "same-origin", headers: { Accept: "application/json" } })
+    .then(function (oResp) {
+      if (!oResp.ok) { throw new Error("start_up " + oResp.status); }
+      return oResp.json();
+    })
+    .then(function (oStartUp) {
+      if (!oStartUp || !oStartUp.id) { throw new Error("start_up: no user"); }
+      return oStartUp.id;
+    })
+    .catch(fnShellUser);
+  // End: added by SI2 Tech
+
+  pUserId.then(function (sUserId) {
+    var sUser = String(sUserId || "").trim().toUpperCase();
+    if (!sUser) { return; }
+    oODataModel.read("/et_nfa_search_helpSet", {
+      filters: [new Filter("Type", FilterOperator.EQ, "FORM_DOWNLOAD")],
+      success: function (oData) {
+        var bAllowed = (oData.results || []).some(function (r) {
+          return String(r.Type || "").trim() === "FORM_DOWNLOAD" &&
+                 !String(r.DeletionFlag || "").trim() &&
+                 String(r.Description || "").trim().toUpperCase() === sUser;
+        });
+        oAccessModel.setProperty("/canDownload", bAllowed);
+      },
+      error: function () {
+        oAccessModel.setProperty("/canDownload", false);
+      }
+    });
+  }).catch(function () {
+    oAccessModel.setProperty("/canDownload", false);
+  });
+},
+// End: added by SI2 Tech
 
 // onAfterRendering: function () {
 //   var that = this;
@@ -1656,7 +1735,7 @@ _addVendorColumns: function () {
 
     // Negotiated Price
     oTable.addColumn(new Column({
-      width: "100px",
+      width: "135px", // SI2 Tech: 100px -> 135px for the info button
       hAlign: "End",
       multiLabels: [
         new Label({ text: "" }),
@@ -1667,13 +1746,23 @@ _addVendorColumns: function () {
         width: "100%",
         alignItems: "End",
         items: [
-          new Input({
-            value: `{view>v${v.VendorIndex}NegPrice}`,
+          // Start: added by SI2 Tech - item-row Input + info button (last 10 POs for material + vendor + plant)
+          new sap.m.HBox({
+            width: "100%",
+            alignItems: "Center",
             visible: "{= ${view>NodeType} === 'ITEM' }",
-            editable: "{= ${view>/editable} && !${view>/isAribaMode} }",
-            textAlign: "End",
-            liveChange: this._onPriceChange.bind(this, v.VendorIndex, "Neg")
+            items: [
+              new Input({
+                value: `{view>v${v.VendorIndex}NegPrice}`,
+                editable: "{= ${view>/editable} && !${view>/isAribaMode} }",
+                textAlign: "End",
+                layoutData: new sap.m.FlexItemData({ growFactor: 1 }),
+                liveChange: this._onPriceChange.bind(this, v.VendorIndex, "Neg")
+              }),
+              this._createNegPriceInfoIcon(v)
+            ]
           }),
+          // End: added by SI2 Tech
           new Input({
             value: `{view>v${v.VendorIndex}NegPrice}`,
             visible: "{= ${view>NodeType} === 'SUMMARY' && ${view>Label} !== 'Basic Amount Total' && ${view>Label} !== 'Total Basic' && ${view>Label} !== 'Net Landed Cost (Rs)' && ${view>Label} !== 'Commercial Rating' && ${view>Label} !== 'Loading Comments' && ${view>Label} !== 'Delivery Date' && ${view>Label} !== 'Payment Terms' && ${view>Label} !== 'Total Amt with Comm. Loading' }",
@@ -4411,6 +4500,10 @@ onOpenQcsfBuyerFile: function (oEvent) {
 },
 
 onDownloadQCSForm: function () {
+  // Start: added by SI2 Tech - Download Form only for users in ZNFA_SEARCHHELP (TYPE FORM_DOWNLOAD)
+  var oAccess = this.getOwnerComponent().getModel("formAccess");
+  if (!oAccess || !oAccess.getProperty("/canDownload")) { return; }
+  // End: added by SI2 Tech
   var oVM = this.getView().getModel("view");
   var sNfaRefNo = oVM.getProperty("/nfaRefNo") || "";
   var oODataModel = this.getOwnerComponent().getModel();
@@ -4893,6 +4986,7 @@ onOpenQCSForm: function () {
   });
 },
 
-  });
+  // Start: added by SI2 Tech - closes Object.assign({}, PoHistory, { ... })
+  }));
+  // End: added by SI2 Tech
 });
- 

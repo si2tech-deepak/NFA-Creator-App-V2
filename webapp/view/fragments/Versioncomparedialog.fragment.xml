@@ -1,0 +1,363 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:f="sap.f"
+    xmlns:table="sap.ui.table">
+    <Dialog
+        id="versionCompareDialog"
+        title="{vcModel>/title}"
+        contentWidth="96%"
+        contentHeight="88%"
+        resizable="true"
+        draggable="true"
+        verticalScrolling="false">
+        <!-- Start: added by SI2 Tech - column chooser: ticked columns are shown (frozen on the left), unticked are hidden -->
+        <dependents>
+            <Popover id="vcColumnsPopover" title="Frozen columns" placement="Bottom" contentWidth="14rem">
+                <content>
+                    <VBox renderType="Bare" class="sapUiSmallMarginBeginEnd sapUiTinyMarginTopBottom">
+                        <CheckBox text="PR No. / Item" selected="true" enabled="false" tooltip="Always shown"/>
+                        <CheckBox text="Vendor" selected="{vcModel>/cols/vendor}"/>
+                        <CheckBox text="Change" selected="{vcModel>/cols/change}"/>
+                        <CheckBox text="Item Code" selected="{vcModel>/cols/itemCode}"/>
+                        <CheckBox text="PO No." selected="{vcModel>/cols/poNo}"/>
+                    </VBox>
+                </content>
+            </Popover>
+        </dependents>
+        <!-- End: added by SI2 Tech -->
+        <content>
+            <VBox height="100%" renderType="Bare">
+
+                <!-- Toolbar: version picker, view filter, expand/collapse, export -->
+                <OverflowToolbar style="Clear">
+                    <Label text="Versions" labelFor="vcVersionSelect" showColon="true"/>
+                    <MultiComboBox
+                        id="vcVersionSelect"
+                        width="22rem"
+                        items="{vcModel>/availableVersions}"
+                        selectionFinish="onVcVersionsChange">
+                        <core:Item key="{vcModel>key}" text="{vcModel>text}"/>
+                    </MultiComboBox>
+                    <!-- Start: added by SI2 Tech - PO filter: POs created by this NFA (all versions), all selected by default -->
+                    <Label text="POs" labelFor="vcPoSelect" showColon="true"/>
+                    <MultiComboBox
+                        id="vcPoSelect"
+                        width="22rem"
+                        placeholder="Select PO(s)"
+                        tooltip="Purchase orders created by this NFA, over all versions"
+                        items="{vcModel>/availablePos}"
+                        selectionFinish="onVcPoChange">
+                        <core:Item key="{vcModel>key}" text="{vcModel>text}"/>
+                    </MultiComboBox>
+                    <!-- End: added by SI2 Tech -->
+                    <ToolbarSpacer/>
+                    <SegmentedButton selectedKey="{vcModel>/viewMode}" selectionChange="onVcFilterChange">
+                        <items>
+                            <SegmentedButtonItem key="all" text="All lines"/>
+                            <SegmentedButtonItem key="changed" text="Changed only"/>
+                        </items>
+                    </SegmentedButton>
+                    <ToolbarSeparator/>
+                    <Button icon="sap-icon://expand-group" tooltip="Expand all" press="onVcExpandAll"/>
+                    <Button icon="sap-icon://collapse-group" tooltip="Collapse all" press="onVcCollapseAll"/>
+                    <!-- SI2 Tech: show / hide the frozen columns (Vendor, Change, Item Code, PO No.) -->
+                    <Button icon="sap-icon://action-settings" text="Columns" tooltip="Show or hide the frozen columns" press="onVcColumnsPress"/>
+                    <Button icon="sap-icon://excel-attachment" tooltip="Export to Excel" press="onVcExport"/>
+                </OverflowToolbar>
+
+                <!-- Version summary strip: one card per version with its PO amount and the change vs the previous one -->
+                <!-- SI2 Tech: replaced by the block below - a height limit cut the boxes off under the table
+                <ScrollContainer horizontal="false" vertical="true" width="100%">
+                    <layoutData>
+                        <FlexItemData shrinkFactor="0" maxHeight="40%"/>
+                    </layoutData>
+                    <content>
+                <HBox items="{vcModel>/cards}" wrap="Wrap" renderType="Bare" class="sapUiSmallMarginBegin sapUiTinyMarginBottom">
+                -->
+                <!-- Start: added by SI2 Tech - summary boxes in one row that scrolls sideways (any number of versions):
+                     the strip always has the full box height, so the table starts below it and never covers it -->
+                <ScrollContainer horizontal="true" vertical="false" width="100%">
+                    <layoutData>
+                        <FlexItemData shrinkFactor="0"/>
+                    </layoutData>
+                    <content>
+                <!-- SI2 Tech: displayInline added - the row takes the width of all boxes incl. the last box's end margin,
+                     so the last box is not cut at the end of the scroll -->
+                <HBox items="{vcModel>/cards}" wrap="NoWrap" alignItems="Stretch" renderType="Bare" displayInline="true" class="sapUiSmallMarginBegin sapUiSmallMarginBottom">
+                <!-- End: added by SI2 Tech -->
+                    <!-- Start: added by SI2 Tech - each version in its own sap.f.Card (xmlns:f="sap.f" added on the root element) -->
+                    <!-- SI2 Tech: card width 16rem -> 20rem for the label / value rows -->
+                    <!-- SI2 Tech: class vcCard + data-vc-tint added - same background tint as the version's columns in the table -->
+                    <!-- SI2 Tech: card width 20rem -> 23rem, room for the % change next to the amounts -->
+                    <f:Card width="23rem" class="vcCard sapUiSmallMarginEnd sapUiSmallMarginTop">
+                        <f:customData>
+                            <core:CustomData key="vc-tint" value="{vcModel>tint}" writeToDom="true"/>
+                        </f:customData>
+                        <!-- Start: added by SI2 Tech - boxes keep their width in the single row (no squeezing) -->
+                        <f:layoutData>
+                            <FlexItemData shrinkFactor="0"/>
+                        </f:layoutData>
+                        <!-- End: added by SI2 Tech -->
+                        <f:content>
+                            <!-- SI2 Tech: fixed width (card 20rem minus 2 x 1rem margin) so the values align on the right edge -->
+                            <!-- SI2 Tech: 18rem -> 21rem with the card width -->
+                            <VBox renderType="Bare" class="sapUiSmallMargin" width="21rem">
+                    <!-- End: added by SI2 Tech -->
+                                <Label text="{vcModel>label}" design="Bold"/>
+                                <!-- Start: added by SI2 Tech - PO number(s) as the second line, right below the version title -->
+                                <Text text="{vcModel>poNosText}" tooltip="Purchase order(s) of this version" wrapping="true" class="sapUiTinyMarginBottom"/>
+                                <!-- End: added by SI2 Tech -->
+                                <!-- SI2 Tech: replaced by the PO amount row below (label and value on one line)
+                                <Text text="PO Amount (Net Landed Cost)"/>
+                                -->
+                                <!-- SI2 Tech: replaced by the PO amount row below (tooltip from the model: approval form or selected POs)
+                                <ObjectNumber
+                                    number="{vcModel>poAmtText}"
+                                    unit="INR"
+                                    emphasized="true"
+                                    tooltip="PO amount on the approval form of this version"/>
+                                -->
+                                <!-- Start: added by SI2 Tech - PO amount row (tooltip from the model: approval form or selected POs) -->
+                                <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%">
+                                    <Text text="PO Amount (Net Landed Cost)" class="sapUiTinyMarginEnd"/>
+                                    <!-- SI2 Tech: replaced by the HBox below - % change vs the previous version in brackets next to the amount
+                                    <ObjectNumber
+                                        number="{vcModel>poAmtText}"
+                                        unit="INR"
+                                        emphasized="true"
+                                        textAlign="End"
+                                        tooltip="{vcModel>poAmtTip}">
+                                        <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+                                    </ObjectNumber>
+                                    -->
+                                    <!-- Start: added by SI2 Tech -->
+                                    <HBox alignItems="Center" renderType="Bare">
+                                        <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+                                        <ObjectNumber
+                                            number="{vcModel>poAmtText}"
+                                            unit="INR"
+                                            emphasized="true"
+                                            textAlign="End"
+                                            tooltip="{vcModel>poAmtTip}"/>
+                                        <ObjectStatus
+                                            text="{vcModel>poAmtPct}"
+                                            state="{vcModel>poAmtPctState}"
+                                            visible="{= !!${vcModel>poAmtPct} }"
+                                            tooltip="Change in the PO amount vs the previous version"
+                                            class="sapUiTinyMarginBegin"/>
+                                    </HBox>
+                                    <!-- End: added by SI2 Tech -->
+                                </HBox>
+                                <!-- End: added by SI2 Tech -->
+                                <!-- SI2 Tech: replaced by the Basic / Charges &amp; GST rows below
+                                <Text
+                                    text="{vcModel>splitText}"
+                                    wrapping="true"
+                                    tooltip="Basic = Σ Qty × Negotiated Price (same as Grand Total in the table). Charges &amp; GST = P&amp;F + Freight + Insurance + GST from the QCS summary."/>
+                                -->
+                                <!-- Start: added by SI2 Tech - Basic, Charges &amp; GST, changes vs the previous version (basic amount), net impact -->
+                                <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%" class="sapUiTinyMarginTop">
+                                    <Text text="Basic amount" tooltip="Σ Qty × Negotiated Price (same as Grand Total in the table)" class="sapUiTinyMarginEnd"/>
+                                    <!-- SI2 Tech: replaced by the HBox below - % change vs the previous version in brackets next to the amount
+                                    <Text text="{vcModel>basicValText}" wrapping="false" textAlign="End">
+                                        <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+                                    </Text>
+                                    -->
+                                    <!-- Start: added by SI2 Tech -->
+                                    <HBox alignItems="Center" renderType="Bare">
+                                        <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+                                        <Text text="{vcModel>basicValText}" wrapping="false" textAlign="End"/>
+                                        <ObjectStatus
+                                            text="{vcModel>basicPct}"
+                                            state="{vcModel>basicPctState}"
+                                            visible="{= !!${vcModel>basicPct} }"
+                                            tooltip="Change in the basic amount vs the previous version"
+                                            class="sapUiTinyMarginBegin"/>
+                                    </HBox>
+                                    <!-- End: added by SI2 Tech -->
+                                </HBox>
+                                <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%">
+                                    <Text text="Charges &amp; GST" tooltip="PO amount minus basic amount (P&amp;F + Freight + Insurance + GST from the QCS summary)" class="sapUiTinyMarginEnd"/>
+                                    <!-- SI2 Tech: replaced by the HBox below - % change vs the previous version in brackets next to the amount
+                                    <Text text="{vcModel>chargesValText}" wrapping="false" textAlign="End">
+                                        <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+                                    </Text>
+                                    -->
+                                    <!-- Start: added by SI2 Tech -->
+                                    <HBox alignItems="Center" renderType="Bare">
+                                        <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+                                        <Text text="{vcModel>chargesValText}" wrapping="false" textAlign="End"/>
+                                        <ObjectStatus
+                                            text="{vcModel>chargesPct}"
+                                            state="{vcModel>chargesPctState}"
+                                            visible="{= !!${vcModel>chargesPct} }"
+                                            tooltip="Change in charges &amp; GST vs the previous version"
+                                            class="sapUiTinyMarginBegin"/>
+                                    </HBox>
+                                    <!-- End: added by SI2 Tech -->
+                                </HBox>
+                                <Label text="{vcModel>moveHdrText}" design="Bold" wrapping="true" class="sapUiTinyMarginTop"/>
+                                <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%" class="vcMoveRowSep">
+                                    <Text text="Increase in existing line items" tooltip="Sum of the total increases of lines that are in both versions" class="sapUiTinyMarginEnd"/>
+                                    <ObjectNumber number="{vcModel>incText}" state="{vcModel>incState}" textAlign="End">
+                                        <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+                                    </ObjectNumber>
+                                </HBox>
+                                <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%" class="vcMoveRowSep">
+                                    <Text text="Decrease in existing line items" tooltip="Sum of the total decreases of lines that are in both versions" class="sapUiTinyMarginEnd"/>
+                                    <ObjectNumber number="{vcModel>decText}" state="{vcModel>decState}" textAlign="End">
+                                        <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+                                    </ObjectNumber>
+                                </HBox>
+                                <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%">
+                                    <!-- SI2 Tech: label changed from "New line items added" -->
+                                    <Text text="Increase in PO Value due to Additional New/Extra Pay items" tooltip="Total of lines that are not in the previous version" wrapping="true" class="sapUiTinyMarginEnd">
+                                        <layoutData><FlexItemData growFactor="1" shrinkFactor="1" minWidth="0"/></layoutData>
+                                    </Text>
+                                    <ObjectNumber number="{vcModel>addText}" state="{vcModel>addState}" textAlign="End">
+                                        <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+                                    </ObjectNumber>
+                                </HBox>
+                                <!-- SI2 Tech: Line items removed row not needed in the dialog
+                                <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%">
+                                    <Text text="Line items removed" tooltip="Total of lines of the previous version that are no longer ordered" class="sapUiTinyMarginEnd"/>
+                                    <ObjectNumber number="{vcModel>remText}" state="{vcModel>remState}" textAlign="End">
+                                        <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+                                    </ObjectNumber>
+                                </HBox>
+                                -->
+                                <Label text="Net impact" design="Bold" class="sapUiTinyMarginTop"
+                                       tooltip="Change in the basic amount vs the previous version (increase − decrease + added − removed)"/>
+                                <!-- End: added by SI2 Tech -->
+                                <!-- SI2 Tech: moved up, right below the version title
+                                <Text text="{vcModel>poNosText}" tooltip="Purchase order(s) of this version" wrapping="true"/>
+                                -->
+                                <ObjectStatus text="{vcModel>deltaText}" state="{vcModel>deltaState}" icon="{vcModel>deltaIcon}"/>
+                                <ObjectStatus text="{vcModel>deltaOrigText}" state="{vcModel>deltaOrigState}" visible="{= !!${vcModel>deltaOrigText} }"/>
+                    <!-- Start: added by SI2 Tech - closes VBox / f:content / f:Card -->
+                            </VBox>
+                        </f:content>
+                    </f:Card>
+                    <!-- End: added by SI2 Tech -->
+                </HBox>
+                <!-- Start: added by SI2 Tech - closes content / ScrollContainer -->
+                    </content>
+                </ScrollContainer>
+                <!-- End: added by SI2 Tech -->
+
+                <!-- PR -> line items, same interaction as the QCS vendor comparison -->
+                <!-- SI2 Tech: fixedColumnCount stays 5 - it counts column positions, so whichever of the first five columns
+                     are visible (Columns button) stay frozen and hidden ones take no space; only the versions scroll -->
+                <table:TreeTable
+                    id="vcTable"
+                    class="vcTable"
+                    rows="{path: 'vcModel>/tree', parameters: {arrayNames: ['children'], numberOfExpandedLevels: 1}}"
+                    selectionMode="None"
+                    fixedColumnCount="5"
+                    enableColumnReordering="false"
+                    visibleRowCountMode="Auto"
+                    minAutoRowCount="1"
+                    rowHeight="33"
+                    noData="No ordered lines found for the selected versions.">
+                    <table:layoutData>
+                        <FlexItemData growFactor="1" baseSize="0%"/>
+                    </table:layoutData>
+                    <!-- SI2 Tech: replaced by visibleRowCountMode / minAutoRowCount / rowHeight above - the rowMode aggregation
+                         does not exist in the server's UI5 1.108 (it tried to load sap/ui/table/rowMode.js -> 404, dialog did not open)
+                    <table:rowMode>
+                        <rowmodes:Auto minRowCount="1" rowContentHeight="32"/>
+                    </table:rowMode>
+                    -->
+                    <table:rowSettingsTemplate>
+                        <table:RowSettings highlight="{vcModel>highlight}"/>
+                    </table:rowSettingsTemplate>
+                    <table:columns>
+                        <table:Column width="17rem">
+                            <table:multiLabels>
+                                <Label text="PR No. / Item" textAlign="Center" width="100%"/>
+                            </table:multiLabels>
+                            <table:template>
+                                <!-- SI2 Tech: replaced by the HBox below (label + Long Text link)
+                                <Label
+                                    text="{vcModel>label}"
+                                    tooltip="{vcModel>label}"
+                                    design="{= ${vcModel>NodeType} === 'ITEM' ? 'Standard' : 'Bold' }"
+                                    wrapping="false"/>
+                                -->
+                                <!-- Start: added by SI2 Tech - Long Text link on line items, same look and hover popover as the QCS page -->
+                                <HBox alignItems="Center" width="100%">
+                                    <Label
+                                        text="{vcModel>label}"
+                                        tooltip="{vcModel>label}"
+                                        design="{= ${vcModel>NodeType} === 'ITEM' ? 'Standard' : 'Bold' }"
+                                        wrapping="false">
+                                        <layoutData><FlexItemData growFactor="1" shrinkFactor="1" minWidth="0"/></layoutData>
+                                    </Label>
+                                    <HBox
+                                        visible="{= ${vcModel>NodeType} === 'ITEM' &amp;&amp; !!${vcModel>LongText} }"
+                                        alignItems="Center"
+                                        class="qcsLongTextBox vcLongText sapUiTinyMarginBegin">
+                                        <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+                                        <core:Icon
+                                            src="sap-icon://detail-view"
+                                            color="#0070f2"
+                                            class="sapUiTinyMarginEnd qcsLongTextIcon"/>
+                                        <Text text="Long Text" class="qcsDescText" wrapping="false"/>
+                                    </HBox>
+                                </HBox>
+                                <!-- End: added by SI2 Tech -->
+                            </table:template>
+                        </table:Column>
+                        <!-- SI2 Tech: width 11rem -> 15rem, text "(Vendor No.) Name" (was VendorName) -->
+                        <table:Column width="15rem" visible="{= ${vcModel>/cols/vendor} !== false }">
+                            <table:multiLabels>
+                                <Label text="Vendor" textAlign="Center" width="100%"/>
+                            </table:multiLabels>
+                            <table:template>
+                                <Text text="{vcModel>vendorText}" tooltip="{vcModel>vendorText}" wrapping="false"/>
+                            </table:template>
+                        </table:Column>
+                        <table:Column width="10rem" hAlign="Center" visible="{= ${vcModel>/cols/change} !== false }">
+                            <table:multiLabels>
+                                <Label text="Change" textAlign="Center" width="100%"/>
+                            </table:multiLabels>
+                            <table:template>
+                                <ObjectStatus text="{vcModel>statusText}" tooltip="{vcModel>statusText}" state="{vcModel>statusState}" icon="{vcModel>statusIcon}"/>
+                            </table:template>
+                        </table:Column>
+                        <table:Column width="8rem" visible="{= ${vcModel>/cols/itemCode} !== false }">
+                            <table:multiLabels>
+                                <Label text="Item Code" textAlign="Center" width="100%"/>
+                            </table:multiLabels>
+                            <table:template>
+                                <Text text="{vcModel>Material}" wrapping="false"/>
+                            </table:template>
+                        </table:Column>
+                        <!-- Start: added by SI2 Tech - PO No. once before the versions (latest PO; highlighted when it changed across versions) -->
+                        <table:Column width="8rem" visible="{= ${vcModel>/cols/poNo} !== false }">
+                            <table:multiLabels>
+                                <Label text="PO No." tooltip="Purchase order of the line's vendor (latest version)" textAlign="Center" width="100%"/>
+                            </table:multiLabels>
+                            <table:template>
+                                <ObjectStatus text="{vcModel>poNo}" state="{vcModel>poState}" tooltip="{vcModel>poTip}"/>
+                            </table:template>
+                        </table:Column>
+                        <!-- End: added by SI2 Tech -->
+                        <!-- Version groups (Qty | Unit Rate | Total | Δ) are added by the controller -->
+                    </table:columns>
+                </table:TreeTable>
+            </VBox>
+        </content>
+        <buttons>
+            <!-- SI2 Tech: visible only for users maintained in ZNFA_SEARCHHELP, TYPE FORM_DOWNLOAD -->
+            <Button
+                text="Download Form"
+                type="Emphasized"
+                press="onVcDownloadFormPress"
+                enabled="{= ${vcModel>/cards}.length > 1 }"
+                visible="{formAccess>/canDownload}"/>
+            <Button text="Close" press="onVcClose"/>
+        </buttons>
+    </Dialog>
+</core:FragmentDefinition>

@@ -155,3 +155,15 @@
     overflow-wrap: break-word;
 }
 
+/* Version compare dialog - column headers on one line (columns are sized to fit them) */
+.vcTable .sapUiTableColHdrCnt .sapMLabel {
+    white-space: nowrap;
+}
+
+/* Version compare dialog - separator line between the change rows */
+.vcMoveRowSep {
+    border-bottom: 1px solid var(--sapList_BorderColor, #e5e5e5);
+    padding-bottom: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+

@@ -235,10 +235,30 @@
                                     <grid:label><Label text="Rem. QTY" textAlign="Center" width="100%"/></grid:label>
                                     <grid:template><Text text="{viewModel>RemainingQty}" visible="{= ${viewModel>NodeType} === 'ITEM' }" textAlign="End"/></grid:template>
                                 </grid:Column>
-                                <grid:Column width="80px" hAlign="End">
+                                <!-- Start: added by SI2 Tech - Unit LPP (+ source PO info), width 80px -> 110px to fit the icon -->
+                                <!-- SI2 Tech: 110px -> 140px; the value may shrink (ellipsis + tooltip), the info button never does -->
+                                <grid:Column width="140px" hAlign="End">
                                     <grid:label><Label text="Unit LPP" textAlign="Center" width="100%"/></grid:label>
-                                    <grid:template><Text text="{viewModel>UnitLpp}" visible="{= ${viewModel>NodeType} === 'ITEM' }" textAlign="End"/></grid:template>
+                                    <grid:template>
+                                        <HBox visible="{= ${viewModel>NodeType} === 'ITEM' }" justifyContent="End" alignItems="Center" width="100%">
+                                            <Text text="{viewModel>UnitLpp}" tooltip="{viewModel>UnitLpp}" wrapping="false" textAlign="End">
+                                                <layoutData><FlexItemData shrinkFactor="1" minWidth="0"/></layoutData>
+                                            </Text>
+                                            <!-- SI2 Tech: sap.m.Button instead of core:Icon - an Icon click is taken by the table cell -->
+                                            <!-- SI2 Tech: Ariba check removed - the button is shown for Ariba NFAs as well -->
+                                            <!-- SI2 Tech: Unit LPP > 0 check removed - with no PO in this plant the popup lists the other plants -->
+                                            <Button
+                                                icon="sap-icon://hint"
+                                                type="Transparent"
+                                                visible="{= !!${viewModel>Material} }"
+                                                press="onVhLppInfoPress"
+                                                tooltip="Show the PO this Unit LPP comes from and the last PO in the other plants">
+                                                <layoutData><FlexItemData shrinkFactor="0"/></layoutData>
+                                            </Button>
+                                        </HBox>
+                                    </grid:template>
                                 </grid:Column>
+                                <!-- End: added by SI2 Tech -->
                                 <!-- Vendor columns added dynamically by _buildVersionQcsColumns -->
                             </grid:columns>
                         </grid:TreeTable>
@@ -254,11 +274,13 @@
                 type="Emphasized"
                 press="onVersionSummaryPress"
                 enabled="{= !!${viewModel>/versionView/NfaRefNo} }"/>
+            <!-- SI2 Tech: visible only for users maintained in ZNFA_SEARCHHELP, TYPE FORM_DOWNLOAD -->
             <Button
                 text="Download Form"
                 type="Default"
                 press="onVersionDownloadFormPress"
-                enabled="{= !!${viewModel>/versionView/NfaRefNo} }"/>
+                enabled="{= !!${viewModel>/versionView/NfaRefNo} }"
+                visible="{formAccess>/canDownload}"/>
             <Button text="Close" press="onCloseVersionHistoryDialog"/>
         </buttons>
     </Dialog>
