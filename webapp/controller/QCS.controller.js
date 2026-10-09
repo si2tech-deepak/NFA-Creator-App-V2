@@ -1198,12 +1198,21 @@ onManualMaterialVH: function () {
 
     /* ================= VALUE HELPS ================= */
 
-    onPRNumberVH: function () {
+    onPRNumberVH: function (oEvent) {
   var sNfaRefNo = this.getView().getModel("view").getProperty("/nfaRefNo");
-  this._fetchPRItemsByNfaRefNo(sNfaRefNo);
+  var oSource = oEvent && oEvent.getSource && oEvent.getSource();
+  var sTyped = oSource && oSource.getValue ? String(oSource.getValue() || "").trim() : "";
+  this._fetchPRItemsByNfaRefNo(sNfaRefNo, sTyped);
 },
 
-_fetchPRItemsByNfaRefNo: function (sNfaRefNo) {
+onPRNumberSubmit: function (oEvent) {
+  var sPrNo = String(oEvent.getSource().getValue() || "").trim();
+  if (!sPrNo) { return; }
+  this.getView().getModel("view").setProperty("/SelectedPR", sPrNo);
+  this._fetchPRItemsByPR(sPrNo, true);
+},
+
+_fetchPRItemsByNfaRefNo: function (sNfaRefNo, sTyped) {
   var oModel = this.getOwnerComponent().getModel();
   var that = this;
 
@@ -1213,7 +1222,7 @@ _fetchPRItemsByNfaRefNo: function (sNfaRefNo) {
     filters: [new Filter("NfaRefNo", FilterOperator.EQ, sNfaRefNo)],
     success: function (oData) {
       sap.ui.core.BusyIndicator.hide();
-      that._openPRPickerDialog(oData.results || []);
+      that._openPRPickerDialog(oData.results || [], sTyped);
     },
     error: function (oError) {
       sap.ui.core.BusyIndicator.hide();
@@ -1223,7 +1232,7 @@ _fetchPRItemsByNfaRefNo: function (sNfaRefNo) {
   });
 },
 
-_fetchPRItemsByPR: function (sPrNo) {
+_fetchPRItemsByPR: function (sPrNo, bValidate) {
   var oModel = this.getOwnerComponent().getModel();
   var sNfaRefNo = this.getView().getModel("view").getProperty("/nfaRefNo");
   var oVM = this.getView().getModel("view");
@@ -1237,6 +1246,11 @@ _fetchPRItemsByPR: function (sPrNo) {
       new Filter("PrNo", FilterOperator.EQ, String(sPrNo))
     ],
     success: function (oData) {
+      if (bValidate && !(oData.results || []).length) {
+        sap.ui.core.BusyIndicator.hide();
+        sap.m.MessageBox.error("PR " + sPrNo + " was not found for this NFA reference.");
+        return;
+      }
       var aResults = (oData.results || []).map(function (i) {
         return {
           PrItem: i.PrItem || "",
@@ -1274,7 +1288,7 @@ _fetchPRItemsByPR: function (sPrNo) {
   });
 },
 
-_openPRPickerDialog: function (aItems) {
+_openPRPickerDialog: function (aItems, sTyped) {
   var that = this;
   var oVM = this.getView().getModel("view");
 
@@ -1289,7 +1303,13 @@ _openPRPickerDialog: function (aItems) {
     }
   });
 
-  var oPRItemsModel = new sap.ui.model.json.JSONModel({ items: aPRNumbers, allItems: aPRNumbers });
+  // Apply the value already typed in the input as a case-insensitive "contains" filter
+  var sSearch = (sTyped || "").trim();
+  var aInitial = sSearch
+    ? aPRNumbers.filter(function (o) { return o.PrNo.toLowerCase().indexOf(sSearch.toLowerCase()) !== -1; })
+    : aPRNumbers;
+
+  var oPRItemsModel = new sap.ui.model.json.JSONModel({ items: aInitial, allItems: aPRNumbers });
 
   if (!this._oPRPickerDialog) {
     this._oPRPickerDialog = new sap.m.SelectDialog({
@@ -1300,7 +1320,7 @@ _openPRPickerDialog: function (aItems) {
         var oDialogModel = that._oPRPickerDialog.getModel("prItems");
         var aAll = oDialogModel.getProperty("/allItems");
         var aFiltered = sVal
-          ? aAll.filter(function (o) { return o.PrNo.indexOf(sVal) !== -1; })
+          ? aAll.filter(function (o) { return o.PrNo.toLowerCase().indexOf(sVal.toLowerCase()) !== -1; })
           : aAll;
         oDialogModel.setProperty("/items", aFiltered);
       },
@@ -1319,7 +1339,8 @@ _openPRPickerDialog: function (aItems) {
     path: "prItems>/items",
     template: new sap.m.StandardListItem({ title: "{prItems>PrNo}" })
   });
-  this._oPRPickerDialog.open();
+  // open(sSearchValue) shows the typed value in the dialog's search field ("" clears it)
+  this._oPRPickerDialog.open(sSearch);
 },
 
     onPRItemVH: function () {
