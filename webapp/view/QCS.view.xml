@@ -63,7 +63,8 @@
         showValueHelp="true"
         enabled="{view>/editable}"
         visible="{= ${view>/selectionMode} === 'PR' }"
-        valueHelpRequest="onPRNumberVH"/>
+        valueHelpRequest="onPRNumberVH"
+        submit="onPRNumberSubmit"/>
       <Input
         width="180px"
         placeholder="Select PR Item"

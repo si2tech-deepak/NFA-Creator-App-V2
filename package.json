@@ -13,6 +13,6 @@
   },
   "devDependencies": {
     "@sap/ux-ui5-tooling": "^1.32.0",
-    "@ui5/cli": "^4.0.0"
+    "@ui5/cli": "^4.0.71"
   }
 }
