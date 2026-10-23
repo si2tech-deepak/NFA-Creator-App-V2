@@ -311,7 +311,14 @@ _loadNfaData: function () {
                     biDateRaw: oDate,
                     currentStatus: oItem.Status || "Draft",
                     statusState: that._getStatusState(oItem.Status || "Draft"),
-                    createdBy: oItem.CreatedBy || ""
+                    createdBy: oItem.CreatedBy || "",
+                    // NEW (Phase 2 - Contract Type): Document Type/Category selected at NFA
+                    // creation time. Blank for NFAs created before this existed - the Create
+                    // Document dialog falls back to the old editable selection for those
+                    // (backfill path).
+                    docType: oItem.DocType || "",
+                    docCategory: oItem.DocCategory || "",
+                    docCategoryDesc: oItem.DocCategoryDesc || ""
                 };
             });
 
@@ -677,24 +684,20 @@ _loadNfaData: function () {
           MessageBox.warning("Please select at least one document.");
           return;
         }
+        // NEW (Phase 2 - Contract Type): read the Document Type/Category that was selected
+        // at NFA creation time, same as onOpenCreateDocument below, so this entry point
+        // (Documents tab) shows the same read-only/backfill behavior instead of its own
+        // separate copy.
+        var oFirstCtx = aSelected[0].getBindingContext();
+        var oPreselect = {
+          docType:         oFirstCtx.getProperty("docType"),
+          docCategory:     oFirstCtx.getProperty("docCategory"),
+          docCategoryDesc: oFirstCtx.getProperty("docCategoryDesc")
+        };
         var aIds = aSelected.map(function (oItem) {
           return oItem.getBindingContext().getProperty("eventId");
         }).join(", ");
-        if (!this._oCdModel) { this._oCdModel = new JSONModel(); }
-        this._oCdModel.setData({
-          selectedNfaIds: aIds, docTypeVisible: false, docTypeLabel: "",
-          docTypes: [], selectedDocType: "", selectedRadio: "", busy: false
-        });
-        var oView = this.getView();
-        if (!this._oCreateDocDialog) {
-          this._oCreateDocDialog = sap.ui.xmlfragment(
-            oView.getId(), "com.df.nfa.creator_v2.view.fragments.CreateDocumentDialog", this
-          );
-          oView.addDependent(this._oCreateDocDialog);
-        }
-        this._oCreateDocDialog.setModel(this._oCdModel, "cdModel");
-        this.byId("docTypeRadioGroup").setSelectedIndex(-1);
-        this._oCreateDocDialog.open();
+        this._openCreateDocumentDialog(aIds, oPreselect);
       },
 
       onIconTabSelected: function () {
@@ -725,6 +728,18 @@ _loadNfaData: function () {
         var sJoinedIds = aIds.join(", ");
         var that = this;
 
+        // NEW (Phase 2 - Contract Type): Document Type/Category selected at NFA creation
+        // time, read from the first selected row. Passed through to _openCreateDocumentDialog
+        // so it can display it read-only instead of asking the approver to pick it again
+        // (blank DocType means this NFA predates this feature, so the dialog falls back to
+        // the old editable selection).
+        var oFirstCtx = aSelected[0].getBindingContext();
+        var oPreselect = {
+          docType:         oFirstCtx.getProperty("docType"),
+          docCategory:     oFirstCtx.getProperty("docCategory"),
+          docCategoryDesc: oFirstCtx.getProperty("docCategoryDesc")
+        };
+
         sap.ui.core.BusyIndicator.show(0);
         this.getOwnerComponent().getModel().read("/CreateUpdate_ButtonSet", {
           filters: [new Filter("NfaRefNo", FilterOperator.EQ, sFirstNfaRefNo)],
@@ -733,12 +748,12 @@ _loadNfaData: function () {
             if (oData.results && oData.results.length) {
               that._openUpdateDocumentDialog(oData.results);
             } else {
-              that._openCreateDocumentDialog(sJoinedIds);
+              that._openCreateDocumentDialog(sJoinedIds, oPreselect);
             }
           },
           error: function () {
             sap.ui.core.BusyIndicator.hide();
-            that._openCreateDocumentDialog(sJoinedIds);
+            that._openCreateDocumentDialog(sJoinedIds, oPreselect);
           }
         });
       },
@@ -832,7 +847,7 @@ _loadNfaData: function () {
         if (this._oUpdateDocDialog) { this._oUpdateDocDialog.close(); }
       },
 
-      _openCreateDocumentDialog: function (sJoinedIds) {
+      _openCreateDocumentDialog: function (sJoinedIds, oPreselect) {
         if (!this._oCdModel) {
           this._oCdModel = new JSONModel();
         }
@@ -843,7 +858,14 @@ _loadNfaData: function () {
           docTypes:        [],
           selectedDocType: "",
           selectedRadio:   "",
-          busy:            false
+          busy:            false,
+          // NEW (Phase 2 - Contract Type): Document Type/Category is now selected at NFA
+          // creation time (nfaCreate.controller.js), so this dialog normally just displays
+          // it read-only. docTypeKnown stays false only for NFAs created before this feature
+          // existed, which falls back to the original editable radio/select below (backfill path).
+          docTypeKnown:            false,
+          docTypeDisplay:          "",
+          docCategoryDisplay:      ""
         });
 
         var oView = this.getView();
@@ -856,11 +878,49 @@ _loadNfaData: function () {
           oView.addDependent(this._oCreateDocDialog);
         }
         this._oCreateDocDialog.setModel(this._oCdModel, "cdModel");
-        this.byId("docTypeRadioGroup").setSelectedIndex(-1);
+        this._applyDocTypeDisplay(oPreselect);
+
+        // NEW (Phase 2 - Contract Type): Document Type/Category already chosen at NFA
+        // creation, so nothing to select - skip the dialog and create directly.
+        if (this._oCdModel.getProperty("/docTypeKnown")) {
+          this.onConfirmCreateDocument();
+          return;
+        }
+
         this._oCreateDocDialog.open();
       },
 
-      onDocTypeRadioChange: function (oEvent) {
+      // NEW (Phase 2 - Contract Type): populate the dialog's model from the Document
+      // Type/Category already selected at creation time. Falls back to docTypeKnown=false
+      // (old editable flow) when the selected NFA(s) predate this feature and never got a
+      // DocType saved.
+      _applyDocTypeDisplay: function (oPreselect) {
+        if (!oPreselect || !oPreselect.docType) {
+          this._oCdModel.setProperty("/docTypeKnown", false);
+          // FIXED (Phase 2 - Contract Type): same as original behaviour - start the
+          // backfill radio group with nothing selected so the user's first click always
+          // fires 'select' and shows the Document Category dropdown.
+          var oRadioGroup = this.byId("backfillDocTypeRadioGroup");
+          if (oRadioGroup) { oRadioGroup.setSelectedIndex(-1); }
+          return;
+        }
+        this._oCdModel.setProperty("/docTypeKnown", true);
+        this._oCdModel.setProperty("/selectedRadio", oPreselect.docType);
+        this._oCdModel.setProperty("/selectedDocType", oPreselect.docCategory || "");
+        this._oCdModel.setProperty("/docTypeDisplay", this._docTypeDisplayLabel(oPreselect.docType));
+        this._oCdModel.setProperty("/docCategoryDisplay", oPreselect.docCategoryDesc || "");
+      },
+
+      _docTypeDisplayLabel: function (sKey) {
+        var mLabels = { CONTRACT: "Contract", SA: "Scheduling Agreement", PO: "Purchase Order" };
+        return mLabels[sKey] || "";
+      },
+
+      // RENAMED (Phase 2 - Contract Type) from onDocTypeRadioChange: this is now only
+      // reachable via the backfill RadioButtonGroup (backfillDocTypeRadioGroup in
+      // CreateDocumentDialog.fragment.xml), shown only when docTypeKnown is false. Logic
+      // unchanged from the original.
+      onBackfillDocTypeChange: function (oEvent) {
         var iIdx = oEvent.getParameter("selectedIndex");
         var aKeys = ["CONTRACT", "SA", "PO"];
         var aLabels = ["Contract Doc Type", "Scheduling Agreement Doc Type", "Purchase Order Doc Type"];
@@ -870,6 +930,7 @@ _loadNfaData: function () {
         this._oCdModel.setProperty("/selectedRadio", aKeys[iIdx]);
         this._oCdModel.setProperty("/docTypeLabel", aLabels[iIdx]);
         this._oCdModel.setProperty("/selectedDocType", "");
+        this._oCdModel.setProperty("/docCategoryDisplay", "");
         this._oCdModel.setProperty("/docTypes", []);
         this._oCdModel.setProperty("/docTypeVisible", false);
 
@@ -885,6 +946,16 @@ _loadNfaData: function () {
             MessageToast.show("Failed to load doc types.");
           }
         });
+      },
+
+      // NEW (Phase 2 - Contract Type): companion to onBackfillDocTypeChange - captures the
+      // Description text of the chosen category (the Select's selectedKey binding alone only
+      // captures the key).
+      onBackfillDocCategoryChange: function (oEvent) {
+        var oItem = oEvent.getParameter("selectedItem");
+        if (!oItem) { return; }
+        this._oCdModel.setProperty("/selectedDocType", oItem.getKey());
+        this._oCdModel.setProperty("/docCategoryDisplay", oItem.getText());
       },
 
       onConfirmCreateDocument: function () {
@@ -903,11 +974,13 @@ _loadNfaData: function () {
         var bContract = oData.selectedRadio === "CONTRACT";
         var bSA       = oData.selectedRadio === "SA";
 
-        // Get the description of the selected doc type
-        var oSelectedType = (oData.docTypes || []).find(function (o) {
-          return o.KeyDataType === oData.selectedDocType;
-        });
-        var sDocTypeDesc = oSelectedType ? oSelectedType.Description : "";
+        // FIXED (Phase 2 - Contract Type): previously searched oData.docTypes for the
+        // Description, but that array is only ever populated by the backfill flow
+        // (onBackfillDocTypeChange) - for the normal, now-read-only known-DocType path it
+        // stayed empty and DocTypeDesc silently posted as "". docCategoryDisplay is
+        // populated by both paths (_applyDocTypeDisplay for the known path,
+        // onBackfillDocCategoryChange for the backfill path), so use that.
+        var sDocTypeDesc = oData.docCategoryDisplay || "";
 
         var mLabel = { CONTRACT: "Contract", SA: "Scheduling Agreement", PO: "Purchase Order" };
         var sLabel = mLabel[oData.selectedRadio];
@@ -968,10 +1041,12 @@ _loadNfaData: function () {
         });
 
         that._oCdModel.setProperty("/busy", true);
+        sap.ui.core.BusyIndicator.show(0); // NEW (Phase 2 - Contract Type): dialog may be skipped
 
         Promise.all(aPromises)
           .then(function () {
             that._oCdModel.setProperty("/busy", false);
+            sap.ui.core.BusyIndicator.hide();
             that._oCreateDocDialog.close();
             MessageToast.show(sLabel + " created successfully!");
             that.byId("approvedTable").removeSelections(true);
@@ -980,6 +1055,7 @@ _loadNfaData: function () {
           })
           .catch(function (sMsg) {
             that._oCdModel.setProperty("/busy", false);
+            sap.ui.core.BusyIndicator.hide();
             MessageBox.error(sLabel + " creation failed: " + sMsg);
           });
       },

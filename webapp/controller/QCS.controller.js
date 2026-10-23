@@ -459,7 +459,12 @@ _onRouteMatched: function (oEvent) {
         PurchaseGroup:     oNfa.PurchaseGroup    || "",
         PurchaseGroupDesc: oNfa.PurchaseGroupDesc || "",
         Version:           oNfa.Version           || "",
-        OldPO:             oNfa.OldPO             || ""
+        OldPO:             oNfa.OldPO             || "",
+        // NEW (Phase 2 - Contract Type): Document Type/Category, set at NFA creation time,
+        // needed here to decide whether the Contract Amount field is shown in QCS Summary.
+        DocType:           oNfa.DocType           || "",
+        DocCategory:       oNfa.DocCategory       || "",
+        DocCategoryDesc:   oNfa.DocCategoryDesc   || ""
       };
       that._loadNfaSection1(oNfa, sNfaRefNo, oODataModel);
       that._loadVendorsAndPRItems(oODataModel, sNfaRefNo, sAribaDocNo, oVM, that);
@@ -2684,7 +2689,8 @@ _openDraftFormDialog: function (fnCallback, bRefreshLpp) {
     "ContractEffDate", "ContractDelivDate", "MobilizationDate",
     "ImpactOnSchedule", "ImpactRemarks", "WbsInfo",
     "Incoterm", "IncotermDesc", "DeviationOnCommTerms",
-    "SpecialCommTerms", "Recommendation", "AdditionalInfo", "AmendedReason"
+    "SpecialCommTerms", "Recommendation", "AdditionalInfo", "AmendedReason",
+    "ContractAmt" // NEW (Phase 2 - Contract Type): rate-only contract total, carried over from a saved approval form
   ];
 
   var aTreeData = that.getView().getModel("view").getProperty("/TreeData") || [];
@@ -2788,7 +2794,11 @@ _openDraftFormDialog: function (fnCallback, bRefreshLpp) {
       AmendedReason: that.getView().getModel("view").getProperty("/ReasonForAmendment") || "",
       isDocEditMode: that.getView().getModel("view").getProperty("/isDocEditMode") || false,
       formEditable: bEditable,
-      isExisting: !bEditable
+      isExisting: !bEditable,
+      // NEW (Phase 2 - Contract Type): Contract Amount field, only shown when this NFA's
+      // Document Type (selected at creation time, see nfaCreate.controller.js) is "CONTRACT".
+      ContractAmt: "",
+      contractAmtVisible: that._nfaDetails.DocType === "CONTRACT"
     };
     if (oData) {
       aAllowedKeys.forEach(function (sKey) {
@@ -2930,6 +2940,10 @@ onDraftFormConfirm: function () {
     BudgetedAmount:    oData.BudgetedAmount     ? oData.BudgetedAmount.toString() : "0",
     WbsAmount:         oData.WbsAmount           ? oData.WbsAmount.toString()      : "0",
     CurrentPoAmt:          oData.PoAmount           ? oData.PoAmount.toString()       : "0",
+    // NEW (Phase 2 - Contract Type): rate-only contract total. Workflow threshold logic
+    // (get_approval_mailid) uses this when valued, falling back to CurrentPoAmt (PO Amount)
+    // when blank/zero.
+    ContractAmt:       oData.ContractAmt        ? oData.ContractAmt.toString()     : "0",
     LppAmount:         oData.LppAmount          ? oData.LppAmount.toString()      : "0",
     IceAmount:         oData.IceAmount          ? oData.IceAmount.toString()      : "0",
     GstAmount:         oData.GstAmount          ? oData.GstAmount.toString()       : "0",

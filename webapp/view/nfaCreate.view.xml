@@ -320,6 +320,28 @@
                                         width="100%"/>
                                 </VBox>
 
+                                <!-- NEW (Phase 2 - Contract Type): Document Type / Document Category, selected via dialog at
+                                     NFA creation time (see nfaCreate.controller.js: _openDocTypeSelectDialog). Editable
+                                     only while the NFA is in Draft (same isEditMode/isDocEditMode gating already used
+                                     for Currency/Incoterms above); locked once submitted/approved. -->
+                                <VBox>
+                                    <Label text="Document Type:" required="true"/>
+                                    <Input id="docTypeInput" value="{viewModel>/header/DocTypeDesc}"
+                                         showValueHelp="{viewModel>/isEditMode}"
+                                        valueHelpRequest="onDocTypeVH"
+                                        editable="{viewModel>/isEditMode}"
+                                        width="100%"/>
+                                </VBox>
+
+                                <VBox>
+                                    <Label text="Document Category:" required="true"/>
+                                    <Input id="docCategoryInput" value="{viewModel>/header/DocCategoryDesc}"
+                                         showValueHelp="{viewModel>/isEditMode}"
+                                        valueHelpRequest="onDocTypeVH"
+                                        editable="{viewModel>/isEditMode}"
+                                        width="100%"/>
+                                </VBox>
+
                                 <VBox>
                                     <Label text="PR Budget"/>
                                     <Input value="{viewModel>/header/PrBudget}" editable="false" width="100%"/>
