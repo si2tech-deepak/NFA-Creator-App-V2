@@ -1,36 +1,47 @@
 <core:FragmentDefinition
     xmlns="sap.m"
-    xmlns:core="sap.ui.core"
-    xmlns:l="sap.ui.layout">
+    xmlns:core="sap.ui.core">
 
     <Dialog id="createDocumentDialog" title="Create Document - {cdModel>/selectedNfaIds}" contentWidth="480px" draggable="true"
         busy="{cdModel>/busy}" busyIndicatorDelay="0">
         <VBox class="sapUiMediumMargin">
 
-            <!-- Step 1: Document Type Selection -->
-            <Title text="Select Document Type" level="H5" class="sapUiTinyMarginBottom"/>
-            <RadioButtonGroup id="docTypeRadioGroup" columns="1" select="onDocTypeRadioChange">
-                <buttons>
-                    <RadioButton id="rbContract" text="Contract" key="CONTRACT"/>
-                    <RadioButton id="rbSA"       text="Scheduling Agreement" key="SA"/>
-                    <RadioButton id="rbPO"       text="Purchase Order" key="PO"/>
-                </buttons>
-            </RadioButtonGroup>
-
-            <!-- Step 2: Doc Type dropdown (shown after radio selection) -->
-            <VBox visible="{cdModel>/docTypeVisible}" class="sapUiSmallMarginTop">
-                <Label text="{cdModel>/docTypeLabel}" required="true"/>
-                <Select id="docTypeSelect" width="100%" items="{cdModel>/docTypes}"
-                    selectedKey="{cdModel>/selectedDocType}">
-                    <core:Item key="{cdModel>KeyDataType}" text="{cdModel>Description}"/>
-                </Select>
+            <!-- NEW (Phase 2 - Contract Type): Document Type/Category is now chosen at NFA
+                 creation time (see nfaCreate.controller.js), so the approver just sees what
+                 was already selected - no selection is made here any more. -->
+            <VBox visible="{cdModel>/docTypeKnown}">
+                <Label text="Document Type"/>
+                <Text text="{cdModel>/docTypeDisplay}"/>
+                <Label text="Document Category" class="sapUiTinyMarginTop"/>
+                <Text text="{cdModel>/docCategoryDisplay}"/>
             </VBox>
 
-            <!-- Selected NFAs info -->
-            <!-- <VBox class="sapUiSmallMarginTop">
-                <Label text="Selected NFA(s)"/>
-                <Text text="{cdModel>/selectedNfaIds}"/>
-            </VBox> -->
+            <!-- Backfill path (NEW, Phase 2 - Contract Type): only shown for NFAs created
+                 before this feature existed, which have no saved Document Type. Reuses the
+                 original editable radio + dropdown selection so a document can still be
+                 created for them. -->
+            <VBox visible="{= !${cdModel>/docTypeKnown} }">
+                <Title text="Select Document Type" level="H5" class="sapUiTinyMarginBottom"/>
+                <RadioButtonGroup id="backfillDocTypeRadioGroup" columns="1" select="onBackfillDocTypeChange">
+                    <buttons>
+                        <RadioButton id="rbContract" text="Contract"/>
+                        <RadioButton id="rbSA"       text="Scheduling Agreement"/>
+                        <RadioButton id="rbPO"       text="Purchase Order"/>
+                    </buttons>
+                </RadioButtonGroup>
+
+                <!-- Doc Type dropdown (shown after radio selection) -->
+                <VBox visible="{cdModel>/docTypeVisible}" class="sapUiSmallMarginTop">
+                    <Label text="{cdModel>/docTypeLabel}" required="true"/>
+                    <Select id="docTypeSelect" width="100%"
+                        forceSelection="false"
+                        items="{cdModel>/docTypes}"
+                        selectedKey="{cdModel>/selectedDocType}"
+                        change="onBackfillDocCategoryChange">
+                        <core:Item key="{cdModel>KeyDataType}" text="{cdModel>Description}"/>
+                    </Select>
+                </VBox>
+            </VBox>
 
         </VBox>
 

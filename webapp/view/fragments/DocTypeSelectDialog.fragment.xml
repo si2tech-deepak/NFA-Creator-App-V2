@@ -1,0 +1,48 @@
+<!-- NEW FILE (Phase 2 - Contract Type): Document Type / Document Category selection dialog,
+     shown at NFA creation time (and re-openable via value-help on the Basic Information
+     fields while the NFA is still in Draft). Cloned from the production Create Document
+     dialog's RadioButtonGroup + dependent Select pattern (see
+     CreateDocumentDialog.fragment.xml), but writes into the "viewModel" named model used by
+     nfaCreate.view.xml instead of the "cdModel" used post-approval. -->
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+
+    <Dialog id="docTypeSelectDialog" title="Select Document Type" contentWidth="420px" draggable="true">
+        <VBox class="sapUiMediumMargin">
+
+            <Title text="Document Type" level="H5" class="sapUiTinyMarginBottom"/>
+            <RadioButtonGroup id="headerDocTypeRadioGroup" columns="1"
+                selectedIndex="{viewModel>/header/_docTypeRadioIndex}"
+                select="onHeaderDocTypeChange">
+                <buttons>
+                    <RadioButton id="headerRbContract" text="Contract" key="CONTRACT"/>
+                    <RadioButton id="headerRbSA"       text="Scheduling Agreement" key="SA"/>
+                    <RadioButton id="headerRbPO"       text="Purchase Order" key="PO"/>
+                </buttons>
+            </RadioButtonGroup>
+
+            <VBox visible="{= !!${viewModel>/header/DocType} }" class="sapUiSmallMarginTop">
+                <Label text="Document Category" required="true"/>
+                <Select id="headerDocCategorySelect" width="100%"
+                forceSelection="false"
+                    items="{viewModel>/docCategoryOptions}"
+                    selectedKey="{viewModel>/header/DocCategory}"
+                    change="onHeaderDocCategoryChange">
+                    <core:Item key="{viewModel>KeyDataType}" text="{viewModel>Description}"/>
+                </Select>
+            </VBox>
+
+        </VBox>
+
+        <beginButton>
+            <Button text="Confirm" type="Emphasized" icon="sap-icon://accept"
+                press="onDocTypeSelectConfirm"
+                enabled="{= !!${viewModel>/header/DocType} &amp;&amp; !!${viewModel>/header/DocCategory} }"/>
+        </beginButton>
+        <endButton>
+            <Button text="Cancel" press="onDocTypeSelectCancel"/>
+        </endButton>
+    </Dialog>
+
+</core:FragmentDefinition>

@@ -101,6 +101,13 @@
                     <Label text="Purchase Order (PO) Amount"/>
                     <Text text="{path: 'draftForm>/PoAmount', formatter: '._formatINR'}" textAlign="End" width="100%"/>
 
+                    <!-- 7b. Total Contract Value (NEW - Phase 2: Contract Type, rate-only contracts) -->
+                    <Label text="Total Contract Value" visible="{draftForm>/contractAmtVisible}"/>
+                    <VBox width="100%" visible="{draftForm>/contractAmtVisible}">
+                        <Input value="{draftForm>/ContractAmt}" type="Number" textAlign="End" width="100%" editable="{draftForm>/formEditable}" visible="{draftForm>/formEditable}"/>
+                        <Text text="{path: 'draftForm>/ContractAmt', formatter: '._formatINR'}" textAlign="End" width="100%" visible="{= !${draftForm>/formEditable} }"/>
+                    </VBox>
+
                     <!-- Net Impact -->
                     <Label text="Net Impact"/>
                     <Text text="{path: 'draftForm>/NetImpact', formatter: '._formatINR'}" textAlign="End" width="100%"/>

@@ -279,6 +279,9 @@ sap.ui.define(
           oViewModel.setProperty("/isDocEditMode", false);
           oViewModel.setProperty("/pageTitle", "NFA Create Page");
           this._initializeEmptyForm();
+          // NEW (Phase 2 - Contract Type): force Document Type/Category selection immediately
+          // on manual NFA creation (not on Ariba-sourced creation - ARIBA branch above is untouched).
+          this._openDocTypeSelectDialog(/* bInitial */ true);
         }
 
         // Capture current hash for dirty-check back navigation
@@ -2878,8 +2881,20 @@ sap.ui.define(
                 RefPoNo:             o.RefPoNo || o.OldPO || "",
                 RepeatOrder:         o.RepeatOrder || "",
                 CreatedBy:           o.CreatedBy || "",
-                DocCreated:          o.DocCreated || ""
+                DocCreated:          o.DocCreated || "",
+                // NEW (Phase 2 - Contract Type): Document Type/Category, selected at creation time.
+                DocType:             o.DocType || "",
+                DocTypeDesc:         that._docTypeDisplayFromKey(o.DocType || ""),
+                DocCategory:         o.DocCategory || "",
+                DocCategoryDesc:     o.DocCategoryDesc || "",
+                _docTypeRadioIndex:  that._docTypeIndexFromKey(o.DocType || "")
               });
+              // NEW (Phase 2 - Contract Type): pre-load the Document Category dropdown options
+              // to match the already-saved Document Type, so re-opening the selection dialog
+              // shows the right list without an extra round trip.
+              if (o.DocType) {
+                that._loadDocCategoryOptions(o.DocType);
+              }
               oViewModel.setProperty("/nfaVersion", parseInt(o.Version) || null);
               var iPending = 4;
               var fnDone = function () { if (--iPending === 0) { sap.ui.core.BusyIndicator.hide(); } };
@@ -3207,7 +3222,13 @@ sap.ui.define(
           VendorCategory: "",
           VendorCategoryDesc: "",
           RefPoNo: "",
-          TbdDate: null
+          TbdDate: null,
+          // NEW (Phase 2 - Contract Type): Document Type/Category, selected at creation time.
+          DocType: "",
+          DocTypeDesc: "",
+          DocCategory: "",
+          DocCategoryDesc: "",
+          _docTypeRadioIndex: -1
         });
         this.getView().getModel("viewModel").setProperty("/vendors", []);
         this._initBuyerDocs();
@@ -5207,6 +5228,22 @@ _openSearchHelp: function (
     aErrors.push("Incoterms (must be selected from list)");
   }
 
+  // 4a. Document Type / Category (NEW - Phase 2 - Contract Type)
+  var oDocTypeInput = this.byId("docTypeInput");
+  var oDocCategoryInput = this.byId("docCategoryInput");
+  if (!oHeader.DocType) {
+    if (oDocTypeInput) { oDocTypeInput.setValueState("Error"); oDocTypeInput.setValueStateText("Please select Document Type"); }
+    aErrors.push("Document Type");
+  } else if (oDocTypeInput) {
+    oDocTypeInput.setValueState("None");
+  }
+  if (!oHeader.DocCategory) {
+    if (oDocCategoryInput) { oDocCategoryInput.setValueState("Error"); oDocCategoryInput.setValueStateText("Please select Document Category"); }
+    aErrors.push("Document Category");
+  } else if (oDocCategoryInput) {
+    oDocCategoryInput.setValueState("None");
+  }
+
   // 4b. Plant
   var oPlant = this.byId("headerPlantInput");
   if (oPlant) {
@@ -5529,6 +5566,144 @@ onPercentageChange: function (oEvent) {
   this._saveData();
 },
 
+      // ===================================================================
+      // NEW (Phase 2 - Contract Type): Document Type / Document Category
+      // selection dialog. Opened automatically on manual NFA creation (see
+      // _onRouteMatched, sMode === "MANUAL" branch) and re-openable via the
+      // value-help on the Basic Information "Document Type"/"Document
+      // Category" fields (docTypeInput / docCategoryInput in
+      // nfaCreate.view.xml) while the NFA is still in Draft. Uses the same
+      // RadioButtonGroup (Contract/SA/PO) + dependent Select pattern as the
+      // production CreateDocumentDialog.
+      // ===================================================================
+
+      _openDocTypeSelectDialog: function (bInitial) {
+        var oViewModel = this.getView().getModel("viewModel");
+        var oHeader = oViewModel.getProperty("/header");
+
+        // Stash current values so Cancel can restore them (or detect "nothing was ever picked").
+        this._oDocTypeStash = {
+          DocType:            oHeader.DocType || "",
+          DocTypeDesc:        oHeader.DocTypeDesc || "",
+          DocCategory:        oHeader.DocCategory || "",
+          DocCategoryDesc:    oHeader.DocCategoryDesc || "",
+          _docTypeRadioIndex: typeof oHeader._docTypeRadioIndex === "number" ? oHeader._docTypeRadioIndex : -1
+        };
+        this._bDocTypeDialogInitial = !!bInitial;
+
+        var that = this;
+        var fnOpen = function () {
+          that._oDocTypeSelectDialog.open();
+        };
+
+        if (!this._oDocTypeSelectDialog) {
+          this._oDocTypeSelectDialog = sap.ui.xmlfragment(
+            this.getView().getId(),
+            "com.df.nfa.creator_v2.view.fragments.DocTypeSelectDialog",
+            this
+          );
+          this.getView().addDependent(this._oDocTypeSelectDialog);
+        }
+        fnOpen();
+      },
+
+      onDocTypeVH: function () {
+        // Basic Information value-help (docTypeInput / docCategoryInput) - re-open the
+        // same dialog to change the selection, only reachable while Draft (view-level gating).
+        this._openDocTypeSelectDialog(false);
+      },
+
+      onDocTypeSelectConfirm: function () {
+
+        var oViewModel = this.getView().getModel("viewModel");
+  var sKey = oViewModel.getProperty("/header/DocCategory");
+  var aOptions = oViewModel.getProperty("/docCategoryOptions") || [];
+  var sDesc = "";
+  for (var i = 0; i < aOptions.length; i++) {
+    if (aOptions[i].KeyDataType === sKey) {
+      sDesc = aOptions[i].Description;
+      break;
+    }
+  }
+  oViewModel.setProperty("/header/DocCategoryDesc", sDesc || sKey);
+  this.byId("docTypeInput").setValueState("None");
+  this.byId("docCategoryInput").setValueState("None");
+        this._oDocTypeSelectDialog.close();
+        this._bIsDirty = true;
+      },
+
+      onDocTypeSelectCancel: function () {
+        this._oDocTypeSelectDialog.close();
+        var oViewModel = this.getView().getModel("viewModel");
+        if (this._bDocTypeDialogInitial && !this._oDocTypeStash.DocType) {
+          // Nothing was ever selected and this was the creation-time prompt - abandon creation.
+          this.onBack();
+          return;
+        }
+        // Restore whatever was selected before this dialog opened.
+        oViewModel.setProperty("/header/DocType", this._oDocTypeStash.DocType);
+        oViewModel.setProperty("/header/DocTypeDesc", this._oDocTypeStash.DocTypeDesc);
+        oViewModel.setProperty("/header/DocCategory", this._oDocTypeStash.DocCategory);
+        oViewModel.setProperty("/header/DocCategoryDesc", this._oDocTypeStash.DocCategoryDesc);
+        oViewModel.setProperty("/header/_docTypeRadioIndex", this._oDocTypeStash._docTypeRadioIndex);
+      },
+
+      onHeaderDocTypeChange: function (oEvent) {
+        var iIdx = oEvent.getParameter("selectedIndex");
+        var aKeys = ["CONTRACT", "SA", "PO"];
+        var sKey = aKeys[iIdx];
+        var oViewModel = this.getView().getModel("viewModel");
+
+        oViewModel.setProperty("/header/_docTypeRadioIndex", iIdx);
+        oViewModel.setProperty("/header/DocType", sKey);
+        oViewModel.setProperty("/header/DocTypeDesc", this._docTypeDisplayFromKey(sKey));
+        // Changing the Document Type invalidates any previously selected Category.
+        oViewModel.setProperty("/header/DocCategory", "");
+        oViewModel.setProperty("/header/DocCategoryDesc", "");
+
+        this._loadDocCategoryOptions(sKey);
+      },
+
+      onHeaderDocCategoryChange: function (oEvent) {
+        var oItem = oEvent.getParameter("selectedItem");
+        if (!oItem) { return; }
+        var oViewModel = this.getView().getModel("viewModel");
+        oViewModel.setProperty("/header/DocCategory", oItem.getKey());
+        oViewModel.setProperty("/header/DocCategoryDesc", oItem.getText());
+      },
+
+      _loadDocCategoryOptions: function (sDocTypeKey) {
+        var mTypes  = { CONTRACT: "CONTRACT_DOC_TYPE", SA: "SA_DOC_TYPE", PO: "PO_DOC_TYPE" };
+        var sType = mTypes[sDocTypeKey];
+        if (!sType) { return; }
+
+        var oViewModel = this.getView().getModel("viewModel");
+        var oODataModel = this.getOwnerComponent().getModel();
+        oODataModel.read("/et_nfa_search_helpSet", {
+          filters: [new Filter("Type", FilterOperator.EQ, sType)],
+          success: function (oData) {
+            oViewModel.setProperty("/docCategoryOptions", oData.results || []);
+          },
+          error: function () {
+            MessageToast.show("Failed to load document category options.");
+          }
+        });
+      },
+
+      _docTypeIndexFromKey: function (sKey) {
+        var aKeys = ["CONTRACT", "SA", "PO"];
+        var iIdx = aKeys.indexOf(sKey);
+        return iIdx;
+      },
+
+      _docTypeDisplayFromKey: function (sKey) {
+        var mLabels = { CONTRACT: "Contract", SA: "Scheduling Agreement", PO: "Purchase Order" };
+        return mLabels[sKey] || "";
+      },
+
+      // ===================================================================
+      // End NEW (Phase 2 - Contract Type) Document Type / Category methods.
+      // ===================================================================
 
       // _saveData: function () {
       //     var oViewModel = this.getView().getModel("viewModel");
@@ -5651,7 +5826,12 @@ onPercentageChange: function (oEvent) {
     RequestedApprovalOn: oHeader.RequestedApprovalOn || "",
     Status: "Draft",
     CreatedBy: oHeader.CreatedBy || "",
-    DocCreated: oHeader.DocCreated || ""
+    DocCreated: oHeader.DocCreated || "",
+    // NEW (Phase 2 - Contract Type): Document Type/Category, selected at creation time via the
+    // Document Type dialog (see onDocTypeSelectConfirm / onHeaderDocTypeChange above).
+    DocType: oHeader.DocType || "",
+    DocCategory: oHeader.DocCategory || "",
+    DocCategoryDesc: oHeader.DocCategoryDesc || ""
   };
 
   sap.ui.core.BusyIndicator.show(0);
